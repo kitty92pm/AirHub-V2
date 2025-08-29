@@ -1116,7 +1116,7 @@ function utility.rgba(r, g, b, alpha)
 	return rgb
 end
 
-local s = {
+local themes = {
 	Default = {
 		["Accent"] = Color3.fromRGB(113, 93, 133),
 		["Window Background"] = Color3.fromRGB(30, 30, 30),
@@ -1150,25 +1150,25 @@ local s = {
 	},
 
 	AirHub = {
-		["Accent"] = Color3.fromRGB(100, 59, 154),
-		["Window Background"] = Color3.fromRGB(30, 30, 36),
-		["Window Border"] = Color3.fromRGB(45, 45, 49),
-		["Tab Background"] = Color3.fromRGB(20, 20, 24),
-		["Tab Border"] = Color3.fromRGB(45, 45, 55),
-		["Tab Toggle Background"] = Color3.fromRGB(28, 28, 32),
-		["Section Background"] = Color3.fromRGB(18, 18, 22),
-		["Section Border"] = Color3.fromRGB(35, 35, 45),
-		["Text"] = Color3.fromRGB(180, 180, 190),
-		["Disabled Text"] = Color3.fromRGB(100, 100, 110),
-		["Object Background"] = Color3.fromRGB(25, 25, 29),
-		["Object Border"] = Color3.fromRGB(35, 35, 39),
-		["Dropdown Option Background"] = Color3.fromRGB(19, 19, 23)
+		["Accent"] = Color3.fromRGB(150, 100, 150),
+		["Window Background"] = Color3.fromRGB(35, 30, 35),
+		["Window Border"] = Color3.fromRGB(50, 45, 50),
+		["Tab Background"] = Color3.fromRGB(25, 20, 25),
+		["Tab Border"] = Color3.fromRGB(65, 45, 65),
+		["Tab Toggle Background"] = Color3.fromRGB(35, 30, 35),
+		["Section Background"] = Color3.fromRGB(25, 20, 25),
+		["Section Border"] = Color3.fromRGB(55, 35, 55),
+		["Text"] = Color3.fromRGB(200, 180, 200),
+		["Disabled Text"] = Color3.fromRGB(120, 100, 120),
+		["Object Background"] = Color3.fromRGB(30, 25, 30),
+		["Object Border"] = Color3.fromRGB(40, 35, 40),
+		["Dropdown Option Background"] = Color3.fromRGB(25, 20, 25)
 	}
 }
 
 local themeobjects = {}
 
-local library = utility.table({theme = table.clone(themes.AirHub), folder = "KittenWare", extension = "cfg", flags = {}, open = false, keybind = Enum.KeyCode.RightShift, mousestate = services.InputService.MouseIconEnabled, cursor = nil, holder = nil, connections = {}}, true)
+local library = utility.table({theme = table.clone(themes.Midnight), folder = "AirHub V2", extension = "cfg", flags = {}, open = false, keybind = Enum.KeyCode.RightShift, mousestate = services.InputService.MouseIconEnabled, cursor = nil, holder = nil, connections = {}}, true)
 local decode = (syn and syn.crypt.base64.decode) or (crypt and crypt.base64decode) or base64_decode
 library.gradient = decode("iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAYAAACNMs+9AAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAABuSURBVChTxY9BDoAgDASLGD2ReOYNPsR/+BAfroI7hibe9OYmky2wbUPIOdsXdc1f9WMwppQm+SDGBnUvomAQBH49qzhFEag25869ElzaIXDhD4JGbyoEVxUedN8FKwnfmwhucgKICc+pNB1mZhdCdhsa2ky0FAAAAABJRU5ErkJggg==")
 library.utility = utility
@@ -2790,7 +2790,7 @@ end
 function library:Load(options)
 	options = options or {}
 	utility.table(options)
-	local name = "KittenWare"
+	local name = "Kitten Ware"
 	local sizeX = options.sizex or 450
 	local sizeY = options.sizey or 500
 	local theme = options.theme and options.theme or "AirHub"
