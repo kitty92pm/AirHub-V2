@@ -1162,7 +1162,7 @@ local themes = {
 		["Disabled Text"] = Color3.fromRGB(100, 100, 110),
 		["Object Background"] = Color3.fromRGB(25, 25, 29),
 		["Object Border"] = Color3.fromRGB(35, 35, 39),
-		["Dropdown Option Background"] = Color3.fromRGB(25, 20, 25)
+		["Dropdown Option Background"] = Color3.fromRGB(19, 19, 23)
 	}
 }
 
