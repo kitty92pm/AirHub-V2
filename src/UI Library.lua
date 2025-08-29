@@ -1116,7 +1116,7 @@ function utility.rgba(r, g, b, alpha)
 	return rgb
 end
 
-local themes = {
+local s = {
 	Default = {
 		["Accent"] = Color3.fromRGB(113, 93, 133),
 		["Window Background"] = Color3.fromRGB(30, 30, 30),
@@ -1150,19 +1150,19 @@ local themes = {
 	},
 
 	AirHub = {
-		["Accent"] = Color3.fromRGB(150, 100, 150),
-		["Window Background"] = Color3.fromRGB(35, 30, 35),
-		["Window Border"] = Color3.fromRGB(50, 45, 50),
-		["Tab Background"] = Color3.fromRGB(25, 20, 25),
-		["Tab Border"] = Color3.fromRGB(65, 45, 65),
-		["Tab Toggle Background"] = Color3.fromRGB(35, 30, 35),
-		["Section Background"] = Color3.fromRGB(25, 20, 25),
-		["Section Border"] = Color3.fromRGB(55, 35, 55),
-		["Text"] = Color3.fromRGB(200, 180, 200),
-		["Disabled Text"] = Color3.fromRGB(120, 100, 120),
-		["Object Background"] = Color3.fromRGB(30, 25, 30),
-		["Object Border"] = Color3.fromRGB(40, 35, 40),
-		["Dropdown Option Background"] = Color3.fromRGB(25, 20, 25)
+		["Accent"] = Color3.fromRGB(162, 112, 162),
+	["Window Background"] = Color3.fromRGB(30, 26, 38),
+	["Window Border"] = Color3.fromRGB(54, 46, 69),
+	["Tab Background"] = Color3.fromRGB(22, 18, 28),
+	["Tab Border"] = Color3.fromRGB(70, 55, 90),
+	["Tab Toggle Background"] = Color3.fromRGB(40, 33, 50),
+	["Section Background"] = Color3.fromRGB(25, 21, 32),
+	["Section Border"] = Color3.fromRGB(65, 50, 80),
+	["Text"] = Color3.fromRGB(220, 210, 230),
+	["Disabled Text"] = Color3.fromRGB(120, 110, 135),
+	["Object Background"] = Color3.fromRGB(35, 30, 45),
+	["Object Border"] = Color3.fromRGB(50, 42, 62),
+	["Dropdown Option Background"] = Color3.fromRGB(28, 24, 36)
 	}
 }
 
