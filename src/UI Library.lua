@@ -1150,19 +1150,19 @@ local s = {
 	},
 
 	AirHub = {
-		["Accent"] = Color3.fromRGB(162, 112, 162),
-	["Window Background"] = Color3.fromRGB(30, 26, 38),
-	["Window Border"] = Color3.fromRGB(54, 46, 69),
-	["Tab Background"] = Color3.fromRGB(22, 18, 28),
-	["Tab Border"] = Color3.fromRGB(70, 55, 90),
-	["Tab Toggle Background"] = Color3.fromRGB(40, 33, 50),
-	["Section Background"] = Color3.fromRGB(25, 21, 32),
-	["Section Border"] = Color3.fromRGB(65, 50, 80),
-	["Text"] = Color3.fromRGB(220, 210, 230),
-	["Disabled Text"] = Color3.fromRGB(120, 110, 135),
-	["Object Background"] = Color3.fromRGB(35, 30, 45),
-	["Object Border"] = Color3.fromRGB(50, 42, 62),
-	["Dropdown Option Background"] = Color3.fromRGB(28, 24, 36)
+		["Accent"] = Color3.fromRGB(100, 59, 154),
+		["Window Background"] = Color3.fromRGB(30, 30, 36),
+		["Window Border"] = Color3.fromRGB(45, 45, 49),
+		["Tab Background"] = Color3.fromRGB(20, 20, 24),
+		["Tab Border"] = Color3.fromRGB(45, 45, 55),
+		["Tab Toggle Background"] = Color3.fromRGB(28, 28, 32),
+		["Section Background"] = Color3.fromRGB(18, 18, 22),
+		["Section Border"] = Color3.fromRGB(35, 35, 45),
+		["Text"] = Color3.fromRGB(180, 180, 190),
+		["Disabled Text"] = Color3.fromRGB(100, 100, 110),
+		["Object Background"] = Color3.fromRGB(25, 25, 29),
+		["Object Border"] = Color3.fromRGB(35, 35, 39),
+		["Dropdown Option Background"] = Color3.fromRGB(19, 19, 23)
 	}
 }
 
