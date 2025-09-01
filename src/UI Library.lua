@@ -1150,19 +1150,19 @@ local themes = {
 	},
 
 	AirHub = {
-		["Accent"] = Color3.fromRGB(100, 59, 154),
-		["Window Background"] = Color3.fromRGB(30, 30, 36),
-		["Window Border"] = Color3.fromRGB(45, 45, 49),
-		["Tab Background"] = Color3.fromRGB(20, 20, 24),
-		["Tab Border"] = Color3.fromRGB(45, 45, 55),
-		["Tab Toggle Background"] = Color3.fromRGB(28, 28, 32),
-		["Section Background"] = Color3.fromRGB(18, 18, 22),
-		["Section Border"] = Color3.fromRGB(35, 35, 45),
-		["Text"] = Color3.fromRGB(180, 180, 190),
-		["Disabled Text"] = Color3.fromRGB(100, 100, 110),
-		["Object Background"] = Color3.fromRGB(25, 25, 29),
-		["Object Border"] = Color3.fromRGB(35, 35, 39),
-		["Dropdown Option Background"] = Color3.fromRGB(19, 19, 23)
+		["Accent"] = Color3.fromRGB(255, 143, 183),
+		["Window Background"] = Color3.fromRGB(21, 18, 24),
+		["Window Border"] = Color3.fromRGB(42, 35, 49),
+		["Tab Background"] = Color3.fromRGB(18, 15, 22),
+		["Tab Border"] = Color3.fromRGB(58, 49, 68),
+		["Tab Toggle Background"] = Color3.fromRGB(27, 23, 32),
+		["Section Background"] = Color3.fromRGB(15, 12, 18),
+		["Section Border"] = Color3.fromRGB(46, 38, 56),
+		["Text"] = Color3.fromRGB(237, 230, 242),
+		["Disabled Text"] = Color3.fromRGB(154, 143, 163),
+		["Object Background"] = Color3.fromRGB(22, 18, 28),
+		["Object Border"] = Color3.fromRGB(39, 33, 46),
+		["Dropdown Option Background"] = Color3.fromRGB(19, 15, 24)
 	}
 }
 
@@ -2790,7 +2790,7 @@ end
 function library:Load(options)
 	options = options or {}
 	utility.table(options)
-	local name = "Kitten Ware - v1 | Made by list!"
+	local name = "KuromiWare - v1"
 	local sizeX = options.sizex or 450
 	local sizeY = options.sizey or 500
 	local theme = options.theme and options.theme or "AirHub"
