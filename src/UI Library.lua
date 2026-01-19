@@ -2790,7 +2790,7 @@ end
 function library:Load(options)
 	options = options or {}
 	utility.table(options)
-	local name = "KuromiWare - v1"
+	local name = "KuromiWare"
 	local sizeX = options.sizex or 450
 	local sizeY = options.sizey or 500
 	local theme = options.theme and options.theme or "AirHub"
