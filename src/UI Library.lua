@@ -1118,51 +1118,51 @@ end
 
 local themes = {
 	Default = {
-		["Accent"] = Color3.fromRGB(113, 93, 133),
-		["Window Background"] = Color3.fromRGB(30, 30, 30),
-		["Window Border"] = Color3.fromRGB(45, 45, 45),
+		["Accent"] = Color3.fromRGB(200, 200, 200),
+		["Window Background"] = Color3.fromRGB(15, 15, 15),
+		["Window Border"] = Color3.fromRGB(40, 40, 40),
 		["Tab Background"] = Color3.fromRGB(20, 20, 20),
-		["Tab Border"] = Color3.fromRGB(45, 45, 45),
-		["Tab Toggle Background"] = Color3.fromRGB(28, 28, 28),
+		["Tab Border"] = Color3.fromRGB(35, 35, 35),
+		["Tab Toggle Background"] = Color3.fromRGB(25, 25, 25),
 		["Section Background"] = Color3.fromRGB(18, 18, 18),
-		["Section Border"] = Color3.fromRGB(35, 35, 35),
-		["Text"] = Color3.fromRGB(200, 200, 200),
-		["Disabled Text"] = Color3.fromRGB(110, 110, 110),
-		["Object Background"] = Color3.fromRGB(25, 25, 25),
+		["Section Border"] = Color3.fromRGB(30, 30, 30),
+		["Text"] = Color3.fromRGB(240, 240, 240),
+		["Disabled Text"] = Color3.fromRGB(100, 100, 100),
+		["Object Background"] = Color3.fromRGB(22, 22, 22),
 		["Object Border"] = Color3.fromRGB(35, 35, 35),
-		["Dropdown Option Background"] = Color3.fromRGB(19, 19, 19)
+		["Dropdown Option Background"] = Color3.fromRGB(20, 20, 20)
 	},
 
 	Midnight = {
-		["Accent"] = Color3.fromRGB(100, 59, 154),
-		["Window Background"] = Color3.fromRGB(30, 30, 36),
-		["Window Border"] = Color3.fromRGB(45, 45, 49),
-		["Tab Background"] = Color3.fromRGB(20, 20, 24),
-		["Tab Border"] = Color3.fromRGB(45, 45, 55),
-		["Tab Toggle Background"] = Color3.fromRGB(28, 28, 32),
-		["Section Background"] = Color3.fromRGB(18, 18, 22),
-		["Section Border"] = Color3.fromRGB(35, 35, 45),
-		["Text"] = Color3.fromRGB(180, 180, 190),
-		["Disabled Text"] = Color3.fromRGB(100, 100, 110),
-		["Object Background"] = Color3.fromRGB(25, 25, 29),
-		["Object Border"] = Color3.fromRGB(35, 35, 39),
-		["Dropdown Option Background"] = Color3.fromRGB(19, 19, 23)
+		["Accent"] = Color3.fromRGB(220, 220, 220),
+		["Window Background"] = Color3.fromRGB(10, 10, 10),
+		["Window Border"] = Color3.fromRGB(40, 40, 40),
+		["Tab Background"] = Color3.fromRGB(15, 15, 15),
+		["Tab Border"] = Color3.fromRGB(30, 30, 30),
+		["Tab Toggle Background"] = Color3.fromRGB(20, 20, 20),
+		["Section Background"] = Color3.fromRGB(12, 12, 12),
+		["Section Border"] = Color3.fromRGB(28, 28, 28),
+		["Text"] = Color3.fromRGB(240, 240, 240),
+		["Disabled Text"] = Color3.fromRGB(90, 90, 90),
+		["Object Background"] = Color3.fromRGB(18, 18, 18),
+		["Object Border"] = Color3.fromRGB(28, 28, 28),
+		["Dropdown Option Background"] = Color3.fromRGB(15, 15, 15)
 	},
 
 	AirHub = {
-		["Accent"] = Color3.fromRGB(255, 143, 183),
-		["Window Background"] = Color3.fromRGB(21, 18, 24),
-		["Window Border"] = Color3.fromRGB(42, 35, 49),
-		["Tab Background"] = Color3.fromRGB(18, 15, 22),
-		["Tab Border"] = Color3.fromRGB(58, 49, 68),
-		["Tab Toggle Background"] = Color3.fromRGB(27, 23, 32),
-		["Section Background"] = Color3.fromRGB(15, 12, 18),
-		["Section Border"] = Color3.fromRGB(46, 38, 56),
-		["Text"] = Color3.fromRGB(237, 230, 242),
-		["Disabled Text"] = Color3.fromRGB(154, 143, 163),
-		["Object Background"] = Color3.fromRGB(22, 18, 28),
-		["Object Border"] = Color3.fromRGB(39, 33, 46),
-		["Dropdown Option Background"] = Color3.fromRGB(19, 15, 24)
+		["Accent"] = Color3.fromRGB(220, 220, 220),
+		["Window Background"] = Color3.fromRGB(12, 12, 12),
+		["Window Border"] = Color3.fromRGB(35, 35, 35),
+		["Tab Background"] = Color3.fromRGB(15, 15, 15),
+		["Tab Border"] = Color3.fromRGB(30, 30, 30),
+		["Tab Toggle Background"] = Color3.fromRGB(20, 20, 20),
+		["Section Background"] = Color3.fromRGB(10, 10, 10),
+		["Section Border"] = Color3.fromRGB(28, 28, 28),
+		["Text"] = Color3.fromRGB(240, 240, 240),
+		["Disabled Text"] = Color3.fromRGB(100, 100, 100),
+		["Object Background"] = Color3.fromRGB(18, 18, 18),
+		["Object Border"] = Color3.fromRGB(28, 28, 28),
+		["Dropdown Option Background"] = Color3.fromRGB(15, 15, 15)
 	}
 }
 
@@ -2790,7 +2790,7 @@ end
 function library:Load(options)
 	options = options or {}
 	utility.table(options)
-	local name = "KuromiWare"
+	local name = "withdraw.cc"
 	local sizeX = options.sizex or 450
 	local sizeY = options.sizey or 500
 	local theme = options.theme and options.theme or "AirHub"
