@@ -1173,6 +1173,69 @@ local decode = (syn and syn.crypt.base64.decode) or (crypt and crypt.base64decod
 library.gradient = decode("iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAYAAACNMs+9AAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAABuSURBVChTxY9BDoAgDASLGD2ReOYNPsR/+BAfroI7hibe9OYmky2wbUPIOdsXdc1f9WMwppQm+SDGBnUvomAQBH49qzhFEag25869ElzaIXDhD4JGbyoEVxUedN8FKwnfmwhucgKICc+pNB1mZhdCdhsa2ky0FAAAAABJRU5ErkJggg==")
 library.utility = utility
 
+library.notifications = {}
+library.notificationOffset = 0
+
+function library:Notify(title, text, duration)
+	duration = duration or 3
+
+	local width = 220
+	local height = 40
+	local padding = 8
+
+	local notif = utility.create("Square", {
+		Filled = true,
+		Thickness = 0,
+		Theme = "Object Background",
+		Size = UDim2.new(0, width, 0, height),
+		Position = UDim2.new(1, -width - 12, 1, -(height + 12 + library.notificationOffset)),
+		ZIndex = 200
+	})
+
+	utility.outline(notif, "Object Border")
+
+	utility.create("Image", {
+		Size = UDim2.new(1,0,1,0),
+		Transparency = 0.5,
+		ZIndex = 201,
+		Parent = notif,
+		Data = library.gradient
+	})
+
+	local titleText = utility.create("Text", {
+		Text = title,
+		Font = Drawing.Fonts.Plex,
+		Size = 15,
+		Theme = "Text",
+		Position = UDim2.new(0,6,0,2),
+		ZIndex = 202,
+		Outline = true,
+		Parent = notif
+	})
+
+	local descText = utility.create("Text", {
+		Text = text,
+		Font = Drawing.Fonts.Plex,
+		Size = 13,
+		Theme = "Disabled Text",
+		Position = UDim2.new(0,6,0,18),
+		ZIndex = 202,
+		Outline = true,
+		Parent = notif
+	})
+
+	library.notificationOffset = library.notificationOffset + height + padding
+	table.insert(library.notifications, notif)
+
+	task.delay(duration, function()
+		if notif and notif.exists then
+			notif:Remove()
+		end
+
+		library.notificationOffset = math.max(library.notificationOffset - (height + padding), 0)
+	end)
+end
+
 function utility.outline(obj, color)
 	local outline = drawing:new("Square")
 	outline.Parent = obj
