@@ -1236,6 +1236,69 @@ function library:Notify(title, text, duration)
 	end)
 end
 
+-- // WATERMARK SYSTEM
+
+local RunService = game:GetService("RunService")
+local Stats = game:GetService("Stats")
+
+library.watermark = {
+    enabled = false,
+    showFPS = false,
+    showPing = false,
+    text = "withdraw.cc",
+
+    fps = 0,
+    ping = 0
+}
+
+local last = tick()
+local frames = 0
+
+library.watermarkobject = utility.create("Text", {
+    Text = "",
+    Font = Drawing.Fonts.Plex,
+    Size = 15,
+    Position = Vector2.new(10,10),
+    Theme = "Text",
+    Outline = true,
+    ZIndex = 300,
+    Visible = false
+})
+
+RunService.RenderStepped:Connect(function()
+
+    frames += 1
+    if tick() - last >= 1 then
+        library.watermark.fps = frames
+        frames = 0
+        last = tick()
+    end
+
+    local pingStat = Stats.Network.ServerStatsItem["Data Ping"]
+    if pingStat then
+        library.watermark.ping = math.floor(pingStat:GetValue())
+    end
+
+    if not library.watermark.enabled then
+        library.watermarkobject.Visible = false
+        return
+    end
+
+    local text = library.watermark.text
+
+    if library.watermark.showFPS then
+        text = text .. " | " .. library.watermark.fps .. " FPS"
+    end
+
+    if library.watermark.showPing then
+        text = text .. " | " .. library.watermark.ping .. " ms"
+    end
+
+    library.watermarkobject.Text = text
+    library.watermarkobject.Visible = true
+
+end)
+
 function utility.outline(obj, color)
 	local outline = drawing:new("Square")
 	outline.Parent = obj
