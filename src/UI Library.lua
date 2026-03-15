@@ -1241,62 +1241,64 @@ end
 local RunService = game:GetService("RunService")
 local Stats = game:GetService("Stats")
 
-library.watermark = {
-    enabled = false,
-    showFPS = false,
-    showPing = false,
-    text = "withdraw.cc",
+library.flags["watermark_enabled"] = true
+library.flags["watermark_fps"] = true
+library.flags["watermark_ping"] = true
 
-    fps = 0,
-    ping = 0
-}
+local fps = 0
+local frameCounter = 0
+local lastTick = tick()
 
-local last = tick()
-local frames = 0
+RunService.RenderStepped:Connect(function()
+	frameCounter += 1
+	if tick() - lastTick >= 1 then
+		fps = frameCounter
+		frameCounter = 0
+		lastTick = tick()
+	end
+end)
 
-library.watermarkobject = utility.create("Text", {
-    Text = "",
-    Font = Drawing.Fonts.Plex,
-    Size = 15,
-    Position = Vector2.new(10,10),
-    Theme = "Text",
-    Outline = true,
-    ZIndex = 300,
-    Visible = false
+local function getPing()
+	local net = Stats.Network.ServerStatsItem["Data Ping"]
+	if net then
+		return math.floor(net:GetValue())
+	end
+	return 0
+end
+
+local watermark = utility.create("Text",{
+	Text = "",
+	Font = Drawing.Fonts.Plex,
+	Size = 15,
+	Outline = true,
+	Theme = "Text",
+	ZIndex = 300,
+	Position = UDim2.new(0,10,0,5),
+	Visible = true
 })
+
+library.watermarkobject = watermark
 
 RunService.RenderStepped:Connect(function()
 
-    frames += 1
-    if tick() - last >= 1 then
-        library.watermark.fps = frames
-        frames = 0
-        last = tick()
-    end
+	if not library.flags["watermark_enabled"] then
+		watermark.Visible = false
+		return
+	end
 
-    local pingStat = Stats.Network.ServerStatsItem["Data Ping"]
-    if pingStat then
-        library.watermark.ping = math.floor(pingStat:GetValue())
-    end
+	watermark.Visible = true
 
-    if not library.watermark.enabled then
-        library.watermarkobject.Visible = false
-        return
-    end
+	local text = "withdraw.cc"
 
-    local text = library.watermark.text
+	if library.flags["watermark_fps"] then
+		text = text .. " | FPS: "..fps
+	end
 
-    if library.watermark.showFPS then
-        text = text .. " | " .. library.watermark.fps .. " FPS"
-    end
+	if library.flags["watermark_ping"] then
+		text = text .. " | Ping: "..getPing()
+	end
 
-    if library.watermark.showPing then
-        text = text .. " | " .. library.watermark.ping .. " ms"
-    end
-
-    library.watermarkobject.Text = text
-    library.watermarkobject.Visible = true
-
+	watermark.Text = text
 end)
 
 function utility.outline(obj, color)
