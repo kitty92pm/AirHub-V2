@@ -323,8 +323,139 @@ local drawing = {} do
 		end
 	end)
 
+	local function createRoundedSquare()
+		local mainH = Drawing.new("Square")
+		local mainV = Drawing.new("Square")
+		local corners = {}
+
+		for i = 1, 4 do
+			local c = Drawing.new("Circle")
+			c.Filled = true
+			c.NumSides = 16
+			c.Thickness = 0
+			c.Visible = false
+			corners[i] = c
+		end
+
+		mainH.Filled = true
+		mainH.Thickness = 0
+		mainH.Visible = false
+		mainV.Filled = true
+		mainV.Thickness = 0
+		mainV.Visible = false
+
+		local state = {
+			Position = Vector2.new(0, 0),
+			Size = Vector2.new(0, 0),
+			Color = Color3.new(1, 1, 1),
+			Filled = false,
+			Thickness = 1,
+			Transparency = 1,
+			Visible = false,
+			ZIndex = 0,
+			Rounding = 0,
+		}
+
+		local removed = false
+
+		local function refresh()
+			if removed then return end
+
+			local size = state.Size
+			local pos = state.Position
+			local r = state.Rounding or 0
+
+			if r > size.X / 2 then r = size.X / 2 end
+			if r > size.Y / 2 then r = size.Y / 2 end
+			if r < 0 then r = 0 end
+
+			local visible = state.Visible
+			local filled = state.Filled
+			local color = state.Color
+			local transparency = state.Transparency
+			local zindex = state.ZIndex
+			local thickness = state.Thickness
+
+			local useRounded = visible and filled and r > 0 and size.X >= 2 and size.Y >= 2
+
+			if useRounded then
+				mainH.Visible = true
+				mainH.Position = Vector2.new(pos.X, pos.Y + r)
+				mainH.Size = Vector2.new(size.X, math.max(size.Y - 2 * r, 0))
+				mainH.Color = color
+				mainH.Transparency = transparency
+				mainH.ZIndex = zindex
+				mainH.Filled = true
+				mainH.Thickness = 0
+
+				mainV.Visible = true
+				mainV.Position = Vector2.new(pos.X + r, pos.Y)
+				mainV.Size = Vector2.new(math.max(size.X - 2 * r, 0), size.Y)
+				mainV.Color = color
+				mainV.Transparency = transparency
+				mainV.ZIndex = zindex
+				mainV.Filled = true
+				mainV.Thickness = 0
+
+				local cs = {
+					Vector2.new(pos.X + r, pos.Y + r),
+					Vector2.new(pos.X + size.X - r, pos.Y + r),
+					Vector2.new(pos.X + r, pos.Y + size.Y - r),
+					Vector2.new(pos.X + size.X - r, pos.Y + size.Y - r),
+				}
+
+				for i, c in ipairs(corners) do
+					c.Visible = true
+					c.Position = cs[i]
+					c.Radius = r
+					c.Color = color
+					c.Transparency = transparency
+					c.ZIndex = zindex
+					c.Filled = true
+					c.NumSides = 16
+					c.Thickness = 0
+				end
+			else
+				mainH.Visible = visible
+				mainH.Position = pos
+				mainH.Size = size
+				mainH.Color = color
+				mainH.Transparency = transparency
+				mainH.ZIndex = zindex
+				mainH.Filled = filled
+				mainH.Thickness = thickness
+
+				mainV.Visible = false
+				for i = 1, 4 do corners[i].Visible = false end
+			end
+		end
+
+		local proxy = setmetatable({}, {
+			__index = function(_, k)
+				if k == "Remove" then
+					return function()
+						if removed then return end
+						removed = true
+						pcall(function() mainH:Remove() end)
+						pcall(function() mainV:Remove() end)
+						for i = 1, 4 do
+							pcall(function() corners[i]:Remove() end)
+						end
+					end
+				end
+				return state[k]
+			end,
+			__newindex = function(_, k, v)
+				state[k] = v
+				refresh()
+			end,
+		})
+
+		return proxy
+	end
+
 	function drawing:new(shape)
-		local obj = Drawing.new(shape)
+		local obj = (shape == "Square") and createRoundedSquare() or Drawing.new(shape)
 		objexists[obj] = true
 		obj.Visible = false
 		local signalnames = {}
@@ -1168,11 +1299,21 @@ local themes = {
 
 local themeobjects = {}
 
-local library = utility.table({theme = table.clone(themes.Midnight), folder = "withdraw", extension = "cfg", flags = {}, open = false, keybind = Enum.KeyCode.RightShift, mousestate = services.InputService.MouseIconEnabled, cursor = nil, holder = nil, connections = {}}, true)
+local library = utility.table({theme = table.clone(themes.Midnight), folder = "withdraw", extension = "cfg", flags = {}, open = false, keybind = Enum.KeyCode.RightShift, mousestate = services.InputService.MouseIconEnabled, cursor = nil, holder = nil, connections = {}, cornerRadius = 6}, true)
 getgenv().LibraryOpen = false
 local decode = (syn and syn.crypt.base64.decode) or (crypt and crypt.base64decode) or base64_decode
 library.gradient = decode("iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAYAAACNMs+9AAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAABuSURBVChTxY9BDoAgDASLGD2ReOYNPsR/+BAfroI7hibe9OYmky2wbUPIOdsXdc1f9WMwppQm+SDGBnUvomAQBH49qzhFEag25869ElzaIXDhD4JGbyoEVxUedN8FKwnfmwhucgKICc+pNB1mZhdCdhsa2ky0FAAAAABJRU5ErkJggg==")
 library.utility = utility
+
+function utility.setsquarerounding(square, radius)
+	radius = radius or library.cornerRadius
+	if type(radius) ~= "number" or radius <= 0 then
+		return
+	end
+	pcall(function()
+		square.Rounding = radius
+	end)
+end
 
 library.notifications = {}
 library.notificationOffset = 0
@@ -1255,6 +1396,10 @@ function utility.outline(obj, color)
 	outline.Filled = true
 	outline.Thickness = 0
 
+	if library.cornerRadius and library.cornerRadius > 0 then
+		utility.setsquarerounding(outline, library.cornerRadius + 1)
+	end
+
 	return outline
 end
 
@@ -1272,6 +1417,10 @@ function utility.create(class, properties)
 		else
 			obj[prop] = v
 		end
+	end
+
+	if class == "Square" and properties.Rounding == nil then
+		utility.setsquarerounding(obj)
 	end
 	
 	return obj
