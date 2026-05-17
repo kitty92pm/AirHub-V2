@@ -1315,7 +1315,34 @@ function utility.setsquarerounding(square, radius)
 	end)
 end
 
+function utility.normalizeoptions(options)
+	if type(options) ~= "table" then
+		return options
+	end
+
+	options.name = options.name or options.Name
+	options.Name = options.name
+	options.default = options.default ~= nil and options.default or options.Default
+	options.Default = options.default
+	options.callback = options.callback or options.Callback
+	options.Callback = options.callback
+	options.flag = options.flag or options.Flag
+	options.Flag = options.flag
+	options.min = options.min or options.Min
+	options.max = options.max or options.Max
+	options.content = options.content or options.Content
+	options.placeholder = options.placeholder or options.Placeholder
+	options.float = options.float or options.Float
+	options.scrollable = options.scrollable or options.Scrollable
+	options.scrollingmax = options.scrollingmax or options.ScrollingMax
+	options.blacklist = options.blacklist or options.Blacklist
+	options.defaultalpha = options.defaultalpha or options.DefaultAlpha
+
+	return options
+end
+
 library.notifications = {}
+library.dropdownsByFlag = {}
 library.notificationOffset = 0
 
 function library:Notify(title, text, duration)
@@ -2251,7 +2278,16 @@ function library.createdropdown(holder, content, flag, callback, default, max, s
 		end
 	end
 
+	library.dropdownsByFlag[flag] = dropdowntypes
+
 	return dropdowntypes
+end
+
+function library:UpdateDropdown(flag, content)
+	local dropdown = library.dropdownsByFlag[flag]
+	if dropdown and dropdown.Refresh then
+		dropdown:Refresh(content)
+	end
 end
 
 function library.createslider(min, max, parent, text, default, float, flag, callback)
@@ -3249,12 +3285,180 @@ function library:Load(options)
 	
 		local tabtypes = utility.table({}, true)
 
+		local SUBTAB_BAR_HEIGHT = 20
+		local useSubTabs = false
+		local activeColumns = { left = column1, right = column2 }
+
+		local subtabtoggleholder = utility.create("Square", {
+			Size = UDim2.new(1, 0, 0, 0),
+			Position = UDim2.new(0, 0, 0, 0),
+			Filled = true,
+			Thickness = 0,
+			Visible = false,
+			Parent = tab,
+			ZIndex = 6,
+			Theme = "Tab Background",
+		})
+
+		utility.outline(subtabtoggleholder, "Tab Border")
+
+		local subtabs = {
+			toggles = {},
+			titles = {},
+			toggleOutlines = {},
+			panels = {},
+			count = 0,
+		}
+
+		local function layoutSubTabPanels()
+			local top = SUBTAB_BAR_HEIGHT + 4
+			for _, panel in next, subtabs.panels do
+				panel.Size = UDim2.new(1, -16, 1, -top - 8)
+				panel.Position = UDim2.new(0, 8, 0, top)
+			end
+		end
+
+		local function refreshSubTabLayout()
+			if not useSubTabs then
+				column1.Visible = true
+				column2.Visible = true
+				subtabtoggleholder.Visible = false
+				return
+			end
+
+			column1.Visible = false
+			column2.Visible = false
+			subtabtoggleholder.Visible = true
+			subtabtoggleholder.Size = UDim2.new(1, 0, 0, SUBTAB_BAR_HEIGHT)
+			layoutSubTabPanels()
+		end
+
+		function tabtypes:SubTab(name)
+			useSubTabs = true
+			refreshSubTabLayout()
+
+			local subtabtoggle = utility.create("Square", {
+				Filled = true,
+				Thickness = 0,
+				Parent = subtabtoggleholder,
+				ZIndex = 7,
+				Theme = #subtabs.toggles == 0 and "Tab Toggle Background" or "Tab Background",
+			})
+
+			local subOutline = utility.outline(subtabtoggle, "Tab Border")
+			table.insert(subtabs.toggleOutlines, subOutline)
+			table.insert(subtabs.toggles, subtabtoggle)
+
+			for i, toggle in next, subtabs.toggles do
+				toggle.Size = UDim2.new(1 / #subtabs.toggles, i == 1 and 1 or i == #subtabs.toggles and -2 or -1, 1, 0)
+				toggle.Position = UDim2.new(1 / (#subtabs.toggles / (i - 1)), i == 1 and 0 or 2, 0, 0)
+			end
+
+			local subTitle = utility.create("Text", {
+				Text = name,
+				Font = Drawing.Fonts.Plex,
+				Size = 14,
+				Position = UDim2.new(0.5, 0, 0, 2),
+				Theme = #subtabs.toggles == 1 and "Text" or "Disabled Text",
+				ZIndex = 8,
+				Center = true,
+				Outline = true,
+				Parent = subtabtoggle,
+			})
+
+			table.insert(subtabs.titles, subTitle)
+
+			local panel = utility.create("Square", {
+				Transparency = 0,
+				Visible = #subtabs.panels == 0,
+				Parent = tab,
+				ZIndex = 5,
+			})
+
+			table.insert(subtabs.panels, panel)
+			layoutSubTabPanels()
+
+			local stColumn1 = utility.create("Square", {
+				Transparency = 0,
+				Parent = panel,
+				Size = UDim2.new(0.5, -4, 1, 0),
+			})
+
+			stColumn1:AddListLayout(12)
+			stColumn1:MakeScrollable()
+
+			local stColumn2 = utility.create("Square", {
+				Transparency = 0,
+				Parent = panel,
+				Size = UDim2.new(0.5, -4, 1, 0),
+				Position = UDim2.new(0.5, 4, 0, 0),
+			})
+
+			stColumn2:AddListLayout(12)
+			stColumn2:MakeScrollable()
+
+			local subMouseOver = false
+
+			subtabtoggle.MouseEnter:Connect(function()
+				subMouseOver = true
+				subtabtoggle.Color = panel.Visible and utility.changecolor(library.theme["Tab Toggle Background"], 3) or utility.changecolor(library.theme["Tab Background"], 3)
+			end)
+
+			subtabtoggle.MouseLeave:Connect(function()
+				subMouseOver = false
+				subtabtoggle.Color = panel.Visible and library.theme["Tab Toggle Background"] or library.theme["Tab Background"]
+			end)
+
+			subtabtoggle.MouseButton1Down:Connect(function()
+				subtabtoggle.Color = panel.Visible and utility.changecolor(library.theme["Tab Toggle Background"], 6) or utility.changecolor(library.theme["Tab Background"], 6)
+			end)
+
+			subtabtoggle.MouseButton1Click:Connect(function()
+				for _, obj in next, subtabs.toggles do
+					if obj ~= subtabtoggle then
+						utility.changeobjecttheme(obj, "Tab Background")
+					end
+				end
+
+				for _, obj in next, subtabs.titles do
+					if obj ~= subTitle then
+						utility.changeobjecttheme(obj, "Disabled Text")
+					end
+				end
+
+				for _, obj in next, subtabs.panels do
+					if obj ~= panel then
+						obj.Visible = false
+					end
+				end
+
+				panel.Visible = true
+				utility.changeobjecttheme(subTitle, "Text")
+				utility.changeobjecttheme(subtabtoggle, "Tab Toggle Background")
+				subtabtoggle.Color = subMouseOver and utility.changecolor(library.theme["Tab Toggle Background"], 3) or library.theme["Tab Toggle Background"]
+			end)
+
+			local subtabtypes = utility.table({}, true)
+
+			function subtabtypes:Section(options)
+				local prevLeft, prevRight = activeColumns.left, activeColumns.right
+				activeColumns.left = stColumn1
+				activeColumns.right = stColumn2
+				local result = tabtypes:Section(options)
+				activeColumns.left = prevLeft
+				activeColumns.right = prevRight
+				return result
+			end
+
+			return subtabtypes
+		end
+
 		function tabtypes:Section(options)
 			utility.table(options)
-			local name = options.name
-			local side = options.side and options.side:lower() or "left"
+			local name = options.name or options.Name
+			local side = options.side and options.side:lower() or options.Side and options.Side:lower() or "left"
 
-			local column = side == "left" and column1 or column2
+			local column = side == "left" and activeColumns.left or activeColumns.right
 
 			local section = utility.create("Square", {
 				Filled = true,
@@ -3400,7 +3604,7 @@ function library:Load(options)
 			sectiontypes.seperator = sectiontypes.separator
 
 			function sectiontypes:Button(options)
-				utility.table(options)
+				options = utility.normalizeoptions(utility.table(options))
 				local name = options.name
 				local callback = options.callback or function() end
 
@@ -3461,7 +3665,7 @@ function library:Load(options)
 			end
 
 			function sectiontypes:Toggle(options)
-				utility.table(options)
+				options = utility.normalizeoptions(utility.table(options))
 				local name = options.name
 				local default = options.default or false
 				local flag = options.flag or utility.nextflag()
@@ -3684,7 +3888,7 @@ function library:Load(options)
 			end
 
 			function sectiontypes:Box(options)
-				utility.table(options)
+				options = utility.normalizeoptions(utility.table(options))
 				local default = options.default or ""
 				local placeholder = options.placeholder or ""
 				local flag = options.flag or utility.nextflag()
@@ -3791,7 +3995,7 @@ function library:Load(options)
 			end
 
 			function sectiontypes:Slider(options)
-				utility.table(options)
+				options = utility.normalizeoptions(utility.table(options))
 				local name = options.name
 				local min = options.min or options.minimum or 0
 				local max = options.max or options.maximum or 100
@@ -3827,7 +4031,7 @@ function library:Load(options)
 			end
 
 			function sectiontypes:Dropdown(options)
-				utility.table(options)
+				options = utility.normalizeoptions(utility.table(options))
 				local name = options.name
 				local default = options.default
 				local content = type(options.content) == "table" and options.content or {}
@@ -3886,7 +4090,7 @@ function library:Load(options)
 			end
 
 			function sectiontypes:List(options)
-				utility.table(options)
+				options = utility.normalizeoptions(utility.table(options))
 				local name = options.name
 				local default = options.default
 				local content = type(options.content) == "table" and options.content or {}
@@ -3945,7 +4149,7 @@ function library:Load(options)
 			end
 
 			function sectiontypes:ColorPicker(options)
-				utility.table(options)
+				options = utility.normalizeoptions(utility.table(options))
 				local name = options.name
 				local default = options.default or Color3.fromRGB(255, 255, 255)
 				local flag = options.flag or utility.nextflag()
@@ -3993,7 +4197,7 @@ function library:Load(options)
 			end
 
 			function sectiontypes:Keybind(options)
-				utility.table(options)
+				options = utility.normalizeoptions(utility.table(options))
 				local name = options.name
 				local default = options.default
 				local blacklist = options.blacklist or {}
@@ -4021,6 +4225,12 @@ function library:Load(options)
 				section.Size = UDim2.new(1, 0, 0, sectioncontent.AbsoluteContentSize + 28)
 
 				return library.createkeybind(default, holder, blacklist, flag, callback, -1)
+			end
+
+			sectiontypes.Colorpicker = sectiontypes.ColorPicker
+
+			function sectiontypes:UpdateDropdown(flag, content)
+				library:UpdateDropdown(flag, content)
 			end
 
 			return sectiontypes
