@@ -1602,9 +1602,88 @@ function library:DeleteConfig(name)
 
 	local filepath = string.format("%s//%s.%s", self.folder, name, self.extension)
 
-	if isfolder(folderpath) and isfile(filepath) then
+	if isfolder(self.folder) and isfile(filepath) then
 		delfile(filepath)
 	end
+end
+
+function library:GetAutoloadPath()
+	assert(self.folder, "No folder specified")
+	return string.format("%s//autoload.json", self.folder)
+end
+
+function library:GetAutoloadSettings()
+	local defaults = { enabled = false, name = "default" }
+	local path = self:GetAutoloadPath()
+
+	if typeof(readfile) ~= "function" or typeof(isfile) ~= "function" or not isfile(path) then
+		return defaults.enabled, defaults.name
+	end
+
+	local ok, data = pcall(function()
+		return services.HttpService:JSONDecode(readfile(path))
+	end)
+
+	if ok and type(data) == "table" then
+		local enabled = data.enabled == true
+		local name = type(data.name) == "string" and data.name:gsub("%s", "_") or defaults.name
+		if name == "" then
+			name = defaults.name
+		end
+		return enabled, name
+	end
+
+	return defaults.enabled, defaults.name
+end
+
+function library:SetAutoloadSettings(enabled, name)
+	assert(self.folder, "No folder specified")
+
+	name = type(name) == "string" and name:gsub("%s", "_") or ""
+	if name == "" then
+		name = "default"
+	end
+
+	local folderpath = self.folder
+	if typeof(makefolder) == "function" and not isfolder(folderpath) then
+		makefolder(folderpath)
+	end
+
+	local payload = services.HttpService:JSONEncode({
+		enabled = enabled == true,
+		name = name,
+	})
+
+	if typeof(writefile) == "function" then
+		writefile(self:GetAutoloadPath(), payload)
+	end
+
+	return true
+end
+
+function library:ConfigExists(name)
+	if type(name) ~= "string" or not name:find("%w") then
+		return false
+	end
+
+	local filepath = string.format("%s//%s.%s", self.folder, name, self.extension)
+	return isfolder(self.folder) and isfile(filepath)
+end
+
+function library:AutoloadConfig()
+	local enabled, name = self:GetAutoloadSettings()
+	if not enabled or name == "" then
+		return false, "disabled"
+	end
+
+	if not self:ConfigExists(name) then
+		return false, "missing"
+	end
+
+	self:LoadConfig(name)
+	library.flags["Config Dropdown"] = name
+
+	return true, name
 end
 
 function library:LoadConfig(name)
