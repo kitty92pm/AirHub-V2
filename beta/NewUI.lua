@@ -9518,6 +9518,10 @@ function Compkiller.new(Config : Window)
 			return Compkiller:_LoadElement(Section , true , TabOpenSignal)
 		end;
 
+		if Internal then
+			TabArgs.__subSignal = TabOpenSignal
+		end
+
 		return TabArgs;
 	end;
 
