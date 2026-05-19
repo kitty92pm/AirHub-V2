@@ -1368,7 +1368,7 @@ local themes = {
 
 local themeobjects = {}
 
-local library = utility.table({theme = table.clone(themes.Midnight), folder = "withdraw", extension = "cfg", flags = {}, open = false, keybind = Enum.KeyCode.RightShift, mousestate = services.InputService.MouseIconEnabled, cursor = nil, holder = nil, connections = {}, cornerRadius = 6}, true)
+local library = utility.table({theme = table.clone(themes.Midnight), folder = "withdraw", extension = "cfg", flags = {}, open = false, keybind = Enum.KeyCode.RightShift, mousestate = services.InputService.MouseIconEnabled, cursor = nil, holder = nil, connections = {}, cornerRadius = 6, safeMode = true, safeFlagSet = {}, safeControls = {}}, true)
 getgenv().LibraryOpen = false
 local decode = (syn and syn.crypt.base64.decode) or (crypt and crypt.base64decode) or base64_decode
 library.gradient = decode("iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAYAAACNMs+9AAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAABuSURBVChTxY9BDoAgDASLGD2ReOYNPsR/+BAfroI7hibe9OYmky2wbUPIOdsXdc1f9WMwppQm+SDGBnUvomAQBH49qzhFEag25869ElzaIXDhD4JGbyoEVxUedN8FKwnfmwhucgKICc+pNB1mZhdCdhsa2ky0FAAAAABJRU5ErkJggg==")
@@ -1408,8 +1408,69 @@ function utility.normalizeoptions(options)
 	options.scrollingmax = options.scrollingmax or options.ScrollingMax
 	options.blacklist = options.blacklist or options.Blacklist
 	options.defaultalpha = options.defaultalpha or options.DefaultAlpha
+	options.safe = options.safe or options.Safe
 
 	return options
+end
+
+function library:IsSafeFlag(flag)
+	return type(flag) == "string" and self.safeFlagSet[flag] == true
+end
+
+function library:GetSafeEffective(flag, value)
+	if self.safeMode and self:IsSafeFlag(flag) and value == true then
+		return false
+	end
+	return value
+end
+
+function library:RegisterSafeFlag(flag)
+	if type(flag) ~= "string" or flag == "" or flag == "KW_SAFE_MODE" then
+		return
+	end
+	self.safeFlagSet[flag] = true
+	local ctrl = self.safeControls[flag]
+	if ctrl and ctrl.RefreshSafeVisual then
+		ctrl.RefreshSafeVisual()
+	end
+	if ctrl and self.safeMode and ctrl.ApplySafeState then
+		ctrl.ApplySafeState()
+	end
+end
+
+function library:RegisterSafeFlags(flagList)
+	if type(flagList) ~= "table" then
+		return
+	end
+	for _, flag in ipairs(flagList) do
+		self:RegisterSafeFlag(flag)
+	end
+end
+
+function library:EnforceSafeMode()
+	getgenv().KW_SafeMode = self.safeMode
+	for _, ctrl in pairs(self.safeControls) do
+		if ctrl.ApplySafeState then
+			ctrl.ApplySafeState()
+		end
+	end
+	if self.onSafeModeEnforce then
+		self.onSafeModeEnforce()
+	end
+end
+
+function library:SetSafeMode(enabled)
+	self.safeMode = enabled ~= false
+	getgenv().KW_SafeMode = self.safeMode
+	if self.safeMode then
+		self:EnforceSafeMode()
+	else
+		for _, ctrl in pairs(self.safeControls) do
+			if ctrl.RefreshSafeVisual then
+				ctrl.RefreshSafeVisual()
+			end
+		end
+	end
 end
 
 library.notifications = {}
@@ -1703,6 +1764,8 @@ function library:LoadConfig(name)
 					func(v)
 				end
 			end
+
+			self:EnforceSafeMode()
 		end
 	end
 end
@@ -1734,6 +1797,30 @@ function library:Close()
 	if self.cursor then
 		self.cursor.Visible = self.open
 	end
+end
+
+function library:Open()
+	self:SetOpen(true)
+end
+
+function library:SetOpen(shouldOpen)
+	shouldOpen = shouldOpen == true
+	if self.open ~= shouldOpen then
+		self:Close()
+	else
+		getgenv().LibraryOpen = self.open
+		services.InputService.MouseIconEnabled = not self.open and self.mousestate or false
+		if self.holder then
+			self.holder.Visible = self.open
+		end
+		if self.cursor then
+			self.cursor.Visible = self.open
+		end
+	end
+end
+
+function library:NotifySafeBlocked()
+	self:Notify("Safe Mode", "Rage & exploit features are blocked", 3)
 end
 
 function library:ChangeThemeOption(option, color)
@@ -2440,7 +2527,7 @@ function library:UpdateDropdown(flag, content)
 	end
 end
 
-function library.createslider(min, max, parent, text, default, float, flag, callback)
+function library.createslider(min, max, parent, text, default, float, flag, callback, title)
 	local slider = utility.create("Square", {
 		Filled = true,
 		Thickness = 0,
@@ -2481,25 +2568,62 @@ function library.createslider(min, max, parent, text, default, float, flag, call
 		Parent = slider
 	})
 
-	local function set(value)
-		value = math.clamp(utility.round(value, float), min, max)
+	local allowedValue = default
 
+	local function isSafeControl()
+		return library:IsSafeFlag(flag)
+	end
+
+	local function isSafeBlocked()
+		return library.safeMode and isSafeControl()
+	end
+
+	local function refreshSafeVisual()
+		if title then
+			title.Color = isSafeBlocked() and library.theme["Disabled Text"] or library.theme["Text"]
+		end
+		if isSafeBlocked() then
+			utility.changeobjecttheme(fill, "Object Background")
+			fill.Color = utility.changecolor(library.theme["Object Background"], -5)
+		else
+			utility.changeobjecttheme(fill, "Accent")
+		end
+	end
+
+	local function applyVisual(value)
 		valuetext.Text = text:gsub("%[value%]", string.format("%.14g", value))
-		
 		local sizeX = ((value - min) / (max - min))
 		fill.Size = UDim2.new(sizeX, 0, 1, 0)
-
 		library.flags[flag] = value
+		refreshSafeVisual()
+	end
+
+	local function set(value, fromEnforce)
+		value = math.clamp(utility.round(value, float), min, max)
+
+		if isSafeBlocked() and not fromEnforce then
+			applyVisual(allowedValue)
+			return
+		end
+
+		if not isSafeBlocked() or fromEnforce then
+			allowedValue = value
+		end
+
+		applyVisual(value)
 		callback(value)
 	end
 
-	set(default)
+	set(default, true)
 
 	local sliding = false
 	
 	local mouseover = false
 
 	slider.MouseEnter:Connect(function()
+		if isSafeBlocked() then
+			return
+		end
 		mouseover = true
 		if not sliding then
 			slider.Color = utility.changecolor(library.theme["Object Background"], 3)
@@ -2514,6 +2638,10 @@ function library.createslider(min, max, parent, text, default, float, flag, call
 	end)
 	
 	local function slide(input)
+		if isSafeBlocked() then
+			library:NotifySafeBlocked()
+			return
+		end
 		local sizeX = (input.Position.X - slider.AbsolutePosition.X) / slider.AbsoluteSize.X
 		local value = ((max - min) * sizeX) + min
 
@@ -2522,6 +2650,10 @@ function library.createslider(min, max, parent, text, default, float, flag, call
 
 	utility.connect(slider.InputBegan, function(input)
 		if input.UserInputType == Enum.UserInputType.MouseButton1 then
+			if isSafeBlocked() then
+				library:NotifySafeBlocked()
+				return
+			end
 			sliding = true
 			slider.Color = utility.changecolor(library.theme["Object Background"], 6)
 			slide(input)
@@ -2537,6 +2669,10 @@ function library.createslider(min, max, parent, text, default, float, flag, call
 
 	utility.connect(fill.InputBegan, function(input)
 		if input.UserInputType == Enum.UserInputType.MouseButton1 then
+			if isSafeBlocked() then
+				library:NotifySafeBlocked()
+				return
+			end
 			sliding = true
 			slider.Color = utility.changecolor(library.theme["Object Background"], 6)
 			slide(input)
@@ -2558,12 +2694,33 @@ function library.createslider(min, max, parent, text, default, float, flag, call
 		end
 	end)
 
-	flags[flag] = set
+	flags[flag] = function(value, force)
+		if force or not isSafeBlocked() then
+			set(value, force == true)
+		else
+			applyVisual(allowedValue)
+		end
+	end
+
+	library.safeControls[flag] = {
+		set = flags[flag],
+		RefreshSafeVisual = refreshSafeVisual,
+		ApplySafeState = function()
+			if library.safeMode and isSafeControl() then
+				applyVisual(allowedValue)
+			end
+		end,
+		ForceSet = function(value)
+			flags[flag](value, true)
+		end,
+	}
+
+	refreshSafeVisual()
 
 	local slidertypes = utility.table({}, true)
 
 	function slidertypes:Set(value)
-		set(value)
+		flags[flag](value)
 	end
 
 	return slidertypes
@@ -3751,6 +3908,7 @@ function library:Load(options)
 				options = utility.normalizeoptions(utility.table(options))
 				local name = options.name
 				local callback = options.callback or function() end
+				local isSafe = options.safe == true
 
 				local button = utility.create("Square", {
 					Filled = true,
@@ -3771,7 +3929,7 @@ function library:Load(options)
 					Data = library.gradient
 				})
 
-				utility.create("Text", {
+				local buttonText = utility.create("Text", {
 					Text = name,
 					Font = library.font,
 					Size = 15,
@@ -3787,7 +3945,25 @@ function library:Load(options)
 
 				local mouseover = false
 
+				local function refreshSafeVisual()
+					if not isSafe then
+						buttonText.Color = library.theme["Text"]
+						button.Color = library.theme["Object Background"]
+						return
+					end
+					if library.safeMode then
+						buttonText.Color = library.theme["Disabled Text"]
+						button.Color = utility.changecolor(library.theme["Object Background"], -6)
+					else
+						buttonText.Color = library.theme["Text"]
+						button.Color = library.theme["Object Background"]
+					end
+				end
+
 				button.MouseEnter:Connect(function()
+					if isSafe and library.safeMode then
+						return
+					end
 					mouseover = true
 					button.Color = utility.changecolor(library.theme["Object Background"], 3)
 				end)
@@ -3798,14 +3974,35 @@ function library:Load(options)
 				end)
 
 				button.MouseButton1Down:Connect(function()
+					if isSafe and library.safeMode then
+						return
+					end
 					button.Color = utility.changecolor(library.theme["Object Background"], 6)
 				end)
 
 				button.MouseButton1Up:Connect(function()
+					if isSafe and library.safeMode then
+						return
+					end
 					button.Color = mouseover and utility.changecolor(library.theme["Object Background"], 3) or library.theme["Object Background"]
 				end)
 
-				button.MouseButton1Click:Connect(callback)
+				button.MouseButton1Click:Connect(function()
+					if isSafe and library.safeMode then
+						library:NotifySafeBlocked()
+						refreshSafeVisual()
+						return
+					end
+					callback()
+				end)
+
+				if isSafe then
+					library.safeControls["__btn_" .. name] = {
+						RefreshSafeVisual = refreshSafeVisual,
+						ApplySafeState = function() end,
+					}
+					refreshSafeVisual()
+				end
 			end
 
 			function sectiontypes:Toggle(options)
@@ -3814,6 +4011,14 @@ function library:Load(options)
 				local default = options.default or false
 				local flag = options.flag or utility.nextflag()
 				local callback = options.callback or function() end
+
+				local function isSafeControl()
+					return options.safe == true or library:IsSafeFlag(flag)
+				end
+
+				local function isSafeBlocked()
+					return library.safeMode and isSafeControl()
+				end
 
 				local holder = utility.create("Square", {
 					Transparency = 0,
@@ -3864,11 +4069,57 @@ function library:Load(options)
 				local toggled = false
 				library.flags[flag] = default
 
-				if not default then
-					callback(default)
+				local function syncAccentObjs()
+					local iconIdx = table.find(accentobjs, icon)
+					local titleIdx = table.find(accentobjs, title)
+					if toggled and not isSafeBlocked() then
+						if not iconIdx then table.insert(accentobjs, icon) end
+						if not titleIdx then table.insert(accentobjs, title) end
+					else
+						if iconIdx then table.remove(accentobjs, iconIdx) end
+						if titleIdx then table.remove(accentobjs, titleIdx) end
+					end
+				end
+
+				local function updateToggleVisual()
+					if isSafeBlocked() then
+						utility.changeobjecttheme(icon, "Object Background")
+						utility.changeobjecttheme(title, "Disabled Text")
+						icon.Color = utility.changecolor(library.theme["Object Background"], -8)
+						title.Color = library.theme["Disabled Text"]
+					else
+						utility.changeobjecttheme(icon, toggled and "Accent" or "Object Background")
+						utility.changeobjecttheme(title, toggled and "Accent" or "Disabled Text")
+						icon.Color = toggled and library.theme["Accent"] or (mouseover and utility.changecolor(library.theme["Object Background"], 3) or library.theme["Object Background"])
+					end
+					syncAccentObjs()
+				end
+
+				local function refreshSafeVisual()
+					updateToggleVisual()
+				end
+
+				local function effectiveValue(bool)
+					return library:GetSafeEffective(flag, bool)
+				end
+
+				local function applyToggle(bool, fireCallback)
+					bool = type(bool) == "boolean" and bool or false
+					if toggled ~= bool then
+						toggled = bool
+					end
+					library.flags[flag] = toggled
+					updateToggleVisual()
+					refreshSafeVisual()
+					if fireCallback ~= false then
+						callback(effectiveValue(toggled))
+					end
 				end
 
 				icon.MouseEnter:Connect(function()
+					if isSafeBlocked() then
+						return
+					end
 					if not toggled then
 						mouseover = true
 						icon.Color = utility.changecolor(library.theme["Object Background"], 3)
@@ -3883,52 +4134,55 @@ function library:Load(options)
 				end)
 
 				icon.MouseButton1Down:Connect(function()
+					if isSafeBlocked() then
+						return
+					end
 					if not toggled then
 						icon.Color = utility.changecolor(library.theme["Object Background"], 6)
 					end
 				end)
 
 				icon.MouseButton1Up:Connect(function()
+					if isSafeBlocked() then
+						return
+					end
 					if not toggled then
 						icon.Color = mouseover and utility.changecolor(library.theme["Object Background"], 3) or library.theme["Object Background"]
 					end
 				end)
 
-				local function setstate()
-					toggled = not toggled
-
-					if mouseover and not toggled then
-						icon.Color = utility.changecolor(library.theme["Object Background"], 3)
+				toggleclick.MouseButton1Click:Connect(function()
+					if isSafeBlocked() then
+						library:NotifySafeBlocked()
+						refreshSafeVisual()
+						return
 					end
-
-					utility.changeobjecttheme(icon, toggled and "Accent" or "Object Background")
-					utility.changeobjecttheme(title, toggled and "Accent" or "Disabled Text")
-					icon.Color = toggled and library.theme["Accent"] or (mouseover and utility.changecolor(library.theme["Object Background"], 3) or library.theme["Object Background"])
-
-					if toggled then
-						table.insert(accentobjs, icon)
-						table.insert(accentobjs, title)
-					else
-						table.remove(accentobjs, table.find(accentobjs, icon))
-						table.remove(accentobjs, table.find(accentobjs, title))
-					end
-					
-					library.flags[flag] = toggled
-					callback(toggled)
-				end
-
-				toggleclick.MouseButton1Click:Connect(setstate)
+					applyToggle(not toggled)
+				end)
 
 				local function set(bool)
-					bool = type(bool) == "boolean" and bool or false
-					if toggled ~= bool then
-						setstate()
+					if library.safeMode and isSafeControl() and bool == true then
+						applyToggle(false, true)
+						return
 					end
+					applyToggle(bool)
 				end
 
-				set(default)
+				applyToggle(default, false)
+				callback(effectiveValue(default))
 
 				flags[flag] = set
+
+				library.safeControls[flag] = {
+					set = set,
+					RefreshSafeVisual = refreshSafeVisual,
+					ApplySafeState = function()
+						if library.safeMode and isSafeControl() and toggled then
+							applyToggle(false, true)
+						end
+					end,
+				}
+				refreshSafeVisual()
 
 				local toggletypes = utility.table({}, true)
 
@@ -4171,7 +4425,7 @@ function library:Load(options)
 
 				section.Size = UDim2.new(1, 0, 0, sectioncontent.AbsoluteContentSize + 28)
 
-				return library.createslider(min, max, holder, text, default, float, flag, callback)
+				return library.createslider(min, max, holder, text, default, float, flag, callback, title)
 			end
 
 			function sectiontypes:Dropdown(options)
