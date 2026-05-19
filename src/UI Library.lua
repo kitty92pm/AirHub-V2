@@ -1368,7 +1368,7 @@ local themes = {
 
 local themeobjects = {}
 
-local library = utility.table({theme = table.clone(themes.Midnight), folder = "withdraw", extension = "cfg", flags = {}, open = false, keybind = Enum.KeyCode.RightShift, mousestate = services.InputService.MouseIconEnabled, cursor = nil, holder = nil, connections = {}, cornerRadius = 6, safeMode = true, safeFlagSet = {}, safeControls = {}}, true)
+local library = utility.table({theme = table.clone(themes.Midnight), folder = "withdraw", extension = "cfg", flags = {}, open = false, keybind = Enum.KeyCode.RightShift, mousestate = services.InputService.MouseIconEnabled, cursor = nil, holder = nil, connections = {}, cornerRadius = 6, safeMode = true, safeFlagSet = {}, safeControls = {}, loadingConfig = false}, true)
 getgenv().LibraryOpen = false
 local decode = (syn and syn.crypt.base64.decode) or (crypt and crypt.base64decode) or base64_decode
 library.gradient = decode("iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAYAAACNMs+9AAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAABuSURBVChTxY9BDoAgDASLGD2ReOYNPsR/+BAfroI7hibe9OYmky2wbUPIOdsXdc1f9WMwppQm+SDGBnUvomAQBH49qzhFEag25869ElzaIXDhD4JGbyoEVxUedN8FKwnfmwhucgKICc+pNB1mZhdCdhsa2ky0FAAAAABJRU5ErkJggg==")
@@ -1616,6 +1616,49 @@ local flags = {}
 
 local configignores = {}
 
+local function decodeConfigValue(value)
+	if type(value) == "table" and type(value.color) == "string" then
+		return value
+	end
+
+	if type(value) == "string" and value:find("Enum%.") then
+		local ok, item = pcall(function()
+			if value:find("Enum.KeyCode.") then
+				return Enum.KeyCode[value:gsub("Enum.KeyCode.", "")]
+			end
+			if value:find("Enum.UserInputType.") then
+				return Enum.UserInputType[value:gsub("Enum.UserInputType.", "")]
+			end
+		end)
+		if ok and item then
+			return item
+		end
+	end
+
+	return value
+end
+
+local function applyConfigFlag(flag, value)
+	local func = flags[flag]
+	if not func then
+		return false
+	end
+
+	local decoded = decodeConfigValue(value)
+
+	if type(decoded) == "table" and type(decoded.color) == "string" then
+		local ok, err = pcall(function()
+			func(decoded, decoded.alpha)
+		end)
+		return ok, err
+	end
+
+	local ok, err = pcall(function()
+		func(decoded, true)
+	end)
+	return ok, err
+end
+
 function library:SaveConfig(name)
 	if type(name) == "string" and name:find("%S+") and name:len() > 1 then
 		name = name:gsub("%s", "_")
@@ -1648,8 +1691,9 @@ function library:SaveConfig(name)
 
 		local filepath = string.format("%s//%s.%s", folderpath, name, self.extension)
 		writefile(filepath, config)
+		return true, name
 	else
-		return false, "improper name"
+		return false, "improper_name"
 	end
 end
 
@@ -1738,36 +1782,73 @@ function library:AutoloadConfig()
 	end
 
 	if not self:ConfigExists(name) then
-		return false, "missing"
+		return false, "not_found"
 	end
 
-	self:LoadConfig(name)
-	library.flags["Config Dropdown"] = name
+	local ok, result = self:LoadConfig(name)
+	if ok then
+		library.flags["Config Dropdown"] = name
+		local dropdown = library.dropdownsByFlag and library.dropdownsByFlag["Config Dropdown"]
+		if dropdown and dropdown.Set then
+			dropdown:Set(name)
+		end
+	end
 
-	return true, name
+	return ok, result
 end
 
 function library:LoadConfig(name)
-	if type(name) == "string" and name:find("%w") then
-		assert(self.folder, "No folder specified")
-		assert(self.extension, "No file extension specified")
-
-		local filepath = string.format("%s//%s.%s", self.folder, name, self.extension)
-
-		if isfolder(self.folder) and isfile(filepath) then
-			local file = readfile(filepath)
-			local config = services.HttpService:JSONDecode(file)
-
-			for flag, v in next, config do
-				local func = flags[flag]
-				if func then
-					func(v)
-				end
-			end
-
-			self:EnforceSafeMode()
-		end
+	if type(name) ~= "string" then
+		return false, "invalid_name"
 	end
+
+	name = name:gsub("%s", "_")
+	if name == "" or not name:find("%w") then
+		return false, "invalid_name"
+	end
+
+	assert(self.folder, "No folder specified")
+	assert(self.extension, "No file extension specified")
+
+	local filepath = string.format("%s//%s.%s", self.folder, name, self.extension)
+
+	if typeof(isfolder) ~= "function" or typeof(isfile) ~= "function" or typeof(readfile) ~= "function" then
+		return false, "filesystem_unavailable"
+	end
+
+	if not isfolder(self.folder) or not isfile(filepath) then
+		return false, "not_found"
+	end
+
+	local ok, configOrErr = pcall(function()
+		return services.HttpService:JSONDecode(readfile(filepath))
+	end)
+
+	if not ok or type(configOrErr) ~= "table" then
+		return false, "decode_error"
+	end
+
+	self.loadingConfig = true
+
+	for flag, v in next, configOrErr do
+		applyConfigFlag(flag, v)
+	end
+
+	self.loadingConfig = false
+
+	if type(self.flags["KW_SAFE_MODE"]) == "boolean" then
+		self:SetSafeMode(self.flags["KW_SAFE_MODE"])
+	elseif self.safeMode then
+		self:EnforceSafeMode()
+	end
+
+	self:SyncMouseUI()
+
+	if self.onConfigLoaded then
+		task.defer(self.onConfigLoaded)
+	end
+
+	return true, name
 end
 
 function library:GetConfigs()
@@ -1784,11 +1865,22 @@ function library:GetConfigs()
 	return configs
 end
 
-function library:Close()
-	self.open = not self.open
+function library:SyncMouseUI()
 	getgenv().LibraryOpen = self.open
 
-	services.InputService.MouseIconEnabled = not self.open and self.mousestate or false
+	if self.open then
+		if self._savedMouseBehavior == nil then
+			self._savedMouseBehavior = services.InputService.MouseBehavior
+		end
+		services.InputService.MouseBehavior = Enum.MouseBehavior.Default
+		services.InputService.MouseIconEnabled = false
+	else
+		services.InputService.MouseIconEnabled = self.mousestate
+		if self._savedMouseBehavior ~= nil then
+			services.InputService.MouseBehavior = self._savedMouseBehavior
+			self._savedMouseBehavior = nil
+		end
+	end
 
 	if self.holder then
 		self.holder.Visible = self.open
@@ -1797,6 +1889,11 @@ function library:Close()
 	if self.cursor then
 		self.cursor.Visible = self.open
 	end
+end
+
+function library:Close()
+	self.open = not self.open
+	self:SyncMouseUI()
 end
 
 function library:Open()
@@ -1808,14 +1905,7 @@ function library:SetOpen(shouldOpen)
 	if self.open ~= shouldOpen then
 		self:Close()
 	else
-		getgenv().LibraryOpen = self.open
-		services.InputService.MouseIconEnabled = not self.open and self.mousestate or false
-		if self.holder then
-			self.holder.Visible = self.open
-		end
-		if self.cursor then
-			self.cursor.Visible = self.open
-		end
+		self:SyncMouseUI()
 	end
 end
 
@@ -2606,7 +2696,7 @@ function library.createslider(min, max, parent, text, default, float, flag, call
 			return
 		end
 
-		if not isSafeBlocked() or fromEnforce then
+		if not isSafeBlocked() or fromEnforce or library.loadingConfig then
 			allowedValue = value
 		end
 
@@ -2695,8 +2785,8 @@ function library.createslider(min, max, parent, text, default, float, flag, call
 	end)
 
 	flags[flag] = function(value, force)
-		if force or not isSafeBlocked() then
-			set(value, force == true)
+		if force or library.loadingConfig or not isSafeBlocked() then
+			set(value, force == true or library.loadingConfig == true)
 		else
 			applyVisual(allowedValue)
 		end
@@ -4112,7 +4202,11 @@ function library:Load(options)
 					updateToggleVisual()
 					refreshSafeVisual()
 					if fireCallback ~= false then
-						callback(effectiveValue(toggled))
+						local out = toggled
+						if not library.loadingConfig then
+							out = effectiveValue(toggled)
+						end
+						callback(out)
 					end
 				end
 
@@ -4160,8 +4254,8 @@ function library:Load(options)
 					applyToggle(not toggled)
 				end)
 
-				local function set(bool)
-					if library.safeMode and isSafeControl() and bool == true then
+				local function set(bool, fromLoad)
+					if not fromLoad and not library.loadingConfig and library.safeMode and isSafeControl() and bool == true then
 						applyToggle(false, true)
 						return
 					end
@@ -4171,14 +4265,16 @@ function library:Load(options)
 				applyToggle(default, false)
 				callback(effectiveValue(default))
 
-				flags[flag] = set
+				flags[flag] = function(bool, fromLoad)
+					set(bool, fromLoad == true or library.loadingConfig == true)
+				end
 
 				library.safeControls[flag] = {
-					set = set,
+					set = flags[flag],
 					RefreshSafeVisual = refreshSafeVisual,
 					ApplySafeState = function()
 						if library.safeMode and isSafeControl() and toggled then
-							applyToggle(false, true)
+							flags[flag](false, true)
 						end
 					end,
 				}
