@@ -312,7 +312,12 @@ local function wrapSubTab(tabApi)
 	return sub
 end
 
+local containerRegistry = {}
+
 local function wrapContainer(containerApi)
+	containerApi.__kwSubSignals = containerApi.__kwSubSignals or {}
+	table.insert(containerRegistry, containerApi)
+
 	local tab = {}
 	function tab:SubTab(name)
 		local subApi = containerApi:DrawTab({
@@ -320,9 +325,26 @@ local function wrapContainer(containerApi)
 			Type = "Double",
 			EnableScrolling = true,
 		})
+		if subApi and subApi.__subSignal then
+			table.insert(containerApi.__kwSubSignals, subApi.__subSignal)
+			if #containerApi.__kwSubSignals > 1 then
+				subApi.__subSignal:Fire(false)
+			end
+		end
 		return wrapSubTab(subApi)
 	end
 	return tab
+end
+
+function GUI:FinalizeSubTabs()
+	for _, containerApi in ipairs(containerRegistry) do
+		local signals = containerApi.__kwSubSignals
+		if signals then
+			for i, signal in ipairs(signals) do
+				signal:Fire(i == 1)
+			end
+		end
+	end
 end
 
 function GUI:Load(options)
