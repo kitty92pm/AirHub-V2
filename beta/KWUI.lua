@@ -6,25 +6,35 @@
 local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
 
-local function loadCompkiller()
-	local candidates = {
-		"NewUI/NewUI.lua",
-		"NewUI\\NewUI.lua",
-		"Compkiller.lua",
-	}
-	if typeof(readfile) == "function" and typeof(isfile) == "function" and typeof(loadstring) == "function" then
-		for _, path in ipairs(candidates) do
-			if isfile(path) then
-				local ok, result = pcall(function()
-					return loadstring(readfile(path), path)()
-				end)
-				if ok and result then
-					return result
-				end
-			end
-		end
+local COMPKILLER_URL = "https://raw.githubusercontent.com/kitty92pm/AirHub-V2/refs/heads/main/beta/NewUI.lua"
+
+local function httpGet(url)
+	if typeof(game.HttpGet) == "function" then
+		return game:HttpGet(url)
 	end
-	error("[KWUI] Could not load NewUI/NewUI.lua (Compkiller).")
+	if typeof(game.HttpGetAsync) == "function" then
+		return game:HttpGetAsync(url)
+	end
+	error("[KWUI] HttpGet is not available")
+end
+
+local function loadCompkiller()
+	if getgenv().KW_Compkiller then
+		return getgenv().KW_Compkiller
+	end
+	local ok, result = pcall(function()
+		local src = httpGet(COMPKILLER_URL)
+		local fn, err = loadstring(src, "NewUI.lua")
+		if not fn then
+			error(err or "loadstring failed")
+		end
+		return fn()
+	end)
+	if ok and result then
+		getgenv().KW_Compkiller = result
+		return result
+	end
+	error("[KWUI] Could not load Compkiller: " .. tostring(result))
 end
 
 local Compkiller = loadCompkiller()
@@ -147,14 +157,15 @@ local function wrapSection(sectionApi)
 
 	function api:Toggle(opt)
 		opt = opt or {}
+		local onToggle = opt.Callback or opt.callback
 		local elem = sectionApi:AddToggle({
 			Name = opt.Name or "Toggle",
 			Default = opt.Default == true,
 			Flag = opt.Flag,
 			Risky = opt.Risky,
 			Callback = function(v)
-				if opt.Callback then
-					opt.Callback(v)
+				if onToggle then
+					onToggle(v)
 				end
 			end,
 		})
