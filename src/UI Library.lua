@@ -1775,6 +1775,233 @@ function library:ConfigExists(name)
 	return isfolder(self.folder) and isfile(filepath)
 end
 
+function library:NormalizeConfigName(name)
+	if type(name) ~= "string" then
+		return nil
+	end
+	name = name:gsub("%s", "_")
+	if name == "" or not name:find("%w") then
+		return nil
+	end
+	return name
+end
+
+function library:ReadConfigData(name)
+	name = self:NormalizeConfigName(name)
+	if not name then
+		return nil, "invalid_name"
+	end
+
+	assert(self.folder, "No folder specified")
+	assert(self.extension, "No file extension specified")
+
+	local filepath = string.format("%s//%s.%s", self.folder, name, self.extension)
+
+	if typeof(isfolder) ~= "function" or typeof(isfile) ~= "function" or typeof(readfile) ~= "function" then
+		return nil, "filesystem_unavailable"
+	end
+
+	if not isfolder(self.folder) or not isfile(filepath) then
+		return nil, "not_found"
+	end
+
+	local ok, configOrErr = pcall(function()
+		return services.HttpService:JSONDecode(readfile(filepath))
+	end)
+
+	if not ok or type(configOrErr) ~= "table" then
+		return nil, "decode_error"
+	end
+
+	return configOrErr, name
+end
+
+function library:ConfigDisablesSafeMode(name)
+	local data = self:ReadConfigData(name)
+	if not data then
+		return false
+	end
+	return data["KW_SAFE_MODE"] == false
+end
+
+function library:DismissSafeModeConfirm()
+	if self._safeModeConfirmObjects then
+		for _, obj in next, self._safeModeConfirmObjects do
+			if obj and obj.exists then
+				obj:Remove()
+			end
+		end
+		self._safeModeConfirmObjects = nil
+	end
+	self._safeModeConfirmActive = false
+end
+
+function library:ShowSafeModeConfirmDialog(configName, onConfirm, onCancel)
+	if self._safeModeConfirmActive then
+		return false
+	end
+
+	self._safeModeConfirmActive = true
+	self:SetOpen(true)
+
+	local warningYellow = Color3.fromRGB(255, 204, 64)
+	local panelW, panelH = 360, 132
+	local objects = {}
+
+	local function track(obj)
+		table.insert(objects, obj)
+		return obj
+	end
+
+	local backdrop = track(utility.create("Square", {
+		Filled = true,
+		Thickness = 0,
+		Color = Color3.fromRGB(0, 0, 0),
+		Transparency = 0.55,
+		Size = UDim2.new(1, 0, 1, 0),
+		Position = UDim2.new(0, 0, 0, 0),
+		ZIndex = 480,
+	}))
+
+	local panel = track(utility.create("Square", {
+		Filled = true,
+		Thickness = 0,
+		Theme = "Window Background",
+		Size = UDim2.new(0, panelW, 0, panelH),
+		Position = UDim2.new(0.5, -panelW / 2, 0.5, -panelH / 2),
+		ZIndex = 490,
+	}))
+
+	local panelOutline = track(utility.outline(panel, warningYellow))
+	track(utility.outline(panelOutline, "Window Border"))
+
+	track(utility.create("Image", {
+		Size = UDim2.new(1, 0, 1, 0),
+		Transparency = 0.5,
+		ZIndex = 491,
+		Parent = panel,
+		Data = library.gradient,
+	}))
+
+	local displayName = tostring(configName or "config"):gsub("_", " ")
+	track(utility.create("Text", {
+		Text = string.format(
+			'Are you sure you want to continue?\n"%s" turns off Safe Mode.\nRage and exploit features will be enabled.',
+			displayName
+		),
+		Font = library.font,
+		Size = 13,
+		Theme = "Disabled Text",
+		Outline = true,
+		Position = UDim2.new(0, 10, 0, 10),
+		ZIndex = 492,
+		Parent = panel,
+	}))
+
+	local function makeButton(label, xOffset, accentOutline, onClick)
+		local btnW = 128
+		local btn = track(utility.create("Square", {
+			Filled = true,
+			Thickness = 0,
+			Theme = "Object Background",
+			Size = UDim2.new(0, btnW, 0, 14),
+			Position = UDim2.new(0, xOffset, 1, -24),
+			ZIndex = 493,
+			Parent = panel,
+		}))
+
+		local btnOutline = track(utility.outline(btn, accentOutline and warningYellow or "Object Border"))
+		if accentOutline then
+			track(utility.outline(btnOutline, "Object Border"))
+		end
+
+		track(utility.create("Image", {
+			Size = UDim2.new(1, 0, 1, 0),
+			Transparency = 0.5,
+			ZIndex = 494,
+			Parent = btn,
+			Data = library.gradient,
+		}))
+
+		track(utility.create("Text", {
+			Text = label,
+			Font = library.font,
+			Size = 15,
+			Position = UDim2.new(0.5, 0, 0, 0),
+			Center = true,
+			Outline = true,
+			Theme = "Text",
+			ZIndex = 495,
+			Parent = btn,
+		}))
+
+		local mouseover = false
+		local baseColor = library.theme["Object Background"]
+
+		btn.MouseEnter:Connect(function()
+			mouseover = true
+			btn.Color = utility.changecolor(baseColor, 3)
+		end)
+
+		btn.MouseLeave:Connect(function()
+			mouseover = false
+			btn.Color = baseColor
+		end)
+
+		btn.MouseButton1Down:Connect(function()
+			btn.Color = utility.changecolor(baseColor, 6)
+		end)
+
+		btn.MouseButton1Up:Connect(function()
+			btn.Color = mouseover and utility.changecolor(baseColor, 3) or baseColor
+		end)
+
+		btn.MouseButton1Click:Connect(function()
+			self:DismissSafeModeConfirm()
+			if onClick then
+				onClick()
+			end
+		end)
+
+		return btn
+	end
+
+	makeButton("Cancel", 14, false, onCancel)
+	makeButton("Continue", panelW - 142, true, onConfirm)
+
+	self._safeModeConfirmObjects = objects
+
+	for _, obj in next, objects do
+		obj.Visible = true
+	end
+
+	return true
+end
+
+function library:RequestLoadConfig(name, opts)
+	opts = opts or {}
+
+	if self.safeMode and self:ConfigDisablesSafeMode(name) then
+		self:ShowSafeModeConfirmDialog(name, function()
+			local ok, result = self:LoadConfig(name)
+			if opts.onComplete then
+				opts.onComplete(ok, result)
+			end
+		end, function()
+			if opts.onCancel then
+				opts.onCancel()
+			end
+		end)
+		return true, "pending_confirm"
+	end
+
+	local ok, result = self:LoadConfig(name)
+	if opts.onComplete then
+		opts.onComplete(ok, result)
+	end
+	return ok, result
+end
+
 function library:AutoloadConfig()
 	local enabled, name = self:GetAutoloadSettings()
 	if not enabled or name == "" then
@@ -1785,16 +2012,25 @@ function library:AutoloadConfig()
 		return false, "not_found"
 	end
 
-	local ok, result = self:LoadConfig(name)
-	if ok then
-		library.flags["Config Dropdown"] = name
-		local dropdown = library.dropdownsByFlag and library.dropdownsByFlag["Config Dropdown"]
-		if dropdown and dropdown.Set then
-			dropdown:Set(name)
+	local function afterLoad(ok, result)
+		if ok then
+			library.flags["Config Dropdown"] = name
+			local dropdown = library.dropdownsByFlag and library.dropdownsByFlag["Config Dropdown"]
+			if dropdown and dropdown.Set then
+				dropdown:Set(name)
+			end
+		end
+		if self.onAutoloadFinished then
+			self.onAutoloadFinished(ok, result)
 		end
 	end
 
-	return ok, result
+	return self:RequestLoadConfig(name, {
+		onComplete = afterLoad,
+		onCancel = function()
+			afterLoad(false, "safe_mode_cancelled")
+		end,
+	})
 end
 
 function library:LoadConfig(name)
