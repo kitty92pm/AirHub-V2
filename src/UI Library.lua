@@ -1316,23 +1316,72 @@ function utility.rgba(r, g, b, alpha)
 	return rgb
 end
 
-local themes = {
-	Default = {
-		["Accent"] = Color3.fromRGB(200, 200, 200),
-		["Window Background"] = Color3.fromRGB(15, 15, 15),
-		["Window Border"] = Color3.fromRGB(40, 40, 40),
-		["Tab Background"] = Color3.fromRGB(20, 20, 20),
-		["Tab Border"] = Color3.fromRGB(35, 35, 35),
-		["Tab Toggle Background"] = Color3.fromRGB(25, 25, 25),
-		["Section Background"] = Color3.fromRGB(18, 18, 18),
-		["Section Border"] = Color3.fromRGB(30, 30, 30),
-		["Text"] = Color3.fromRGB(248, 248, 252),
-		["Disabled Text"] = Color3.fromRGB(135, 135, 140),
-		["Object Background"] = Color3.fromRGB(22, 22, 22),
-		["Object Border"] = Color3.fromRGB(35, 35, 35),
-		["Dropdown Option Background"] = Color3.fromRGB(20, 20, 20)
-	},
+local function buildMenuTheme(accentR, accentG, accentB, baseR, baseG, baseB, light)
+	local accent = Color3.fromRGB(accentR, accentG, accentB)
+	local base = Color3.fromRGB(baseR, baseG, baseB)
 
+	if light then
+		return {
+			["Accent"] = accent,
+			["Window Background"] = base,
+			["Window Border"] = utility.changecolor(base, -32),
+			["Tab Background"] = utility.changecolor(base, -8),
+			["Tab Border"] = utility.changecolor(base, -22),
+			["Tab Toggle Background"] = utility.changecolor(base, -14),
+			["Section Background"] = utility.changecolor(base, -4),
+			["Section Border"] = utility.changecolor(base, -18),
+			["Text"] = Color3.fromRGB(24, 28, 36),
+			["Disabled Text"] = Color3.fromRGB(120, 126, 138),
+			["Object Background"] = utility.changecolor(base, -10),
+			["Object Border"] = utility.changecolor(base, -24),
+			["Dropdown Option Background"] = utility.changecolor(base, -6),
+		}
+	end
+
+	return {
+		["Accent"] = accent,
+		["Window Background"] = base,
+		["Window Border"] = utility.changecolor(base, 28),
+		["Tab Background"] = utility.changecolor(base, 4),
+		["Tab Border"] = utility.changecolor(base, 18),
+		["Tab Toggle Background"] = utility.changecolor(base, 10),
+		["Section Background"] = utility.changecolor(base, 2),
+		["Section Border"] = utility.changecolor(base, 16),
+		["Text"] = Color3.fromRGB(248, 248, 252),
+		["Disabled Text"] = Color3.fromRGB(125, 125, 130),
+		["Object Background"] = utility.changecolor(base, 8),
+		["Object Border"] = utility.changecolor(base, 18),
+		["Dropdown Option Background"] = utility.changecolor(base, 5),
+	}
+end
+
+local themePresets = {
+	{"Default", 200, 200, 200, 15, 15, 15},
+	{"AirHub", 220, 220, 220, 12, 12, 12},
+	{"Obsidian", 205, 205, 210, 6, 6, 8},
+	{"Charcoal", 185, 190, 200, 14, 15, 18},
+	{"Void", 165, 125, 255, 4, 4, 8},
+	{"Crimson", 255, 75, 95, 12, 8, 10},
+	{"Wine", 220, 70, 100, 10, 6, 10},
+	{"Rose", 255, 120, 170, 14, 8, 12},
+	{"Ocean", 70, 175, 255, 8, 14, 22},
+	{"Forest", 70, 200, 120, 8, 14, 10},
+	{"Sunset", 255, 140, 70, 14, 10, 8},
+	{"Gold", 255, 210, 90, 16, 14, 8},
+	{"Violet", 180, 120, 255, 12, 8, 18},
+	{"Cyber", 0, 255, 220, 6, 12, 14},
+	{"Matrix", 40, 255, 80, 4, 8, 6},
+	{"Dracula", 255, 120, 170, 14, 12, 22},
+	{"Nord", 135, 195, 235, 14, 18, 24},
+	{"Tokyo Night", 120, 170, 255, 10, 12, 20},
+	{"Catppuccin", 245, 190, 220, 12, 12, 20},
+	{"One Dark", 97, 175, 239, 12, 14, 18},
+	{"Cloud", 60, 100, 200, 245, 247, 252, true},
+	{"Pearl", 50, 50, 60, 250, 250, 252, true},
+	{"Paper", 40, 40, 50, 240, 242, 246, true},
+}
+
+local themes = {
 	Midnight = {
 		["Accent"] = Color3.fromRGB(220, 220, 220),
 		["Window Background"] = Color3.fromRGB(10, 10, 10),
@@ -1346,30 +1395,22 @@ local themes = {
 		["Disabled Text"] = Color3.fromRGB(125, 125, 130),
 		["Object Background"] = Color3.fromRGB(18, 18, 18),
 		["Object Border"] = Color3.fromRGB(28, 28, 28),
-		["Dropdown Option Background"] = Color3.fromRGB(15, 15, 15)
+		["Dropdown Option Background"] = Color3.fromRGB(15, 15, 15),
 	},
-
-	AirHub = {
-		["Accent"] = Color3.fromRGB(220, 220, 220),
-		["Window Background"] = Color3.fromRGB(12, 12, 12),
-		["Window Border"] = Color3.fromRGB(35, 35, 35),
-		["Tab Background"] = Color3.fromRGB(15, 15, 15),
-		["Tab Border"] = Color3.fromRGB(30, 30, 30),
-		["Tab Toggle Background"] = Color3.fromRGB(20, 20, 20),
-		["Section Background"] = Color3.fromRGB(10, 10, 10),
-		["Section Border"] = Color3.fromRGB(28, 28, 28),
-		["Text"] = Color3.fromRGB(248, 248, 252),
-		["Disabled Text"] = Color3.fromRGB(135, 135, 140),
-		["Object Background"] = Color3.fromRGB(18, 18, 18),
-		["Object Border"] = Color3.fromRGB(28, 28, 28),
-		["Dropdown Option Background"] = Color3.fromRGB(15, 15, 15)
-	}
 }
+
+for _, preset in ipairs(themePresets) do
+	local name = preset[1]
+	if name ~= "Midnight" then
+		themes[name] = buildMenuTheme(preset[2], preset[3], preset[4], preset[5], preset[6], preset[7], preset[8] == true)
+	end
+end
 
 local themeobjects = {}
 
 local library = utility.table({
 	theme = table.clone(themes.Midnight),
+	currenttheme = "Midnight",
 	folder = "withdraw",
 	extension = "cfg",
 	flags = {},
@@ -1385,15 +1426,20 @@ local library = utility.table({
 	safeControls = {},
 	loadingConfig = false,
 	configFolderName = "configs",
-	idleCatConfig = {
-		url = "https://www.withdraw.cc/assets/OrangeTabby-Idle.png",
-		frames = 12,
-		frameWidth = 48,
-		frameHeight = 48,
+	mascotConfig = {
+		assetBase = "https://www.withdraw.cc/assets/Tuxedo",
+		assetPrefix = "Tuxedo",
+		defaultAnimation = "Sleep",
+		randomMeowAnimation = "Meow",
+		randomMeowMin = 28,
+		randomMeowMax = 52,
 		scale = 2.25,
-		fps = 6,
 		offsetX = 2,
 		offsetY = 2,
+		animations = {
+			Sleep = { fps = 4, loop = true, size = 48, frames = 4 },
+			Meow = { fps = 8, loop = false, size = 48, frames = 7 },
+		},
 	},
 }, true)
 getgenv().LibraryOpen = false
@@ -2196,6 +2242,8 @@ function library:LoadConfig(name)
 		self:EnforceSafeMode()
 	end
 
+	self:ApplyMenuThemeFromFlag()
+
 	self:SyncMouseUI()
 
 	if self.onConfigLoaded then
@@ -2296,12 +2344,96 @@ local function readPngDimensions(body)
 	return w, h
 end
 
-function library:LoadIdleCatImageId(url)
-	if self._idleCatImageId then
-		return self._idleCatImageId
+local function detectSpriteGrid(sheetW, sheetH, hintFrames)
+	if not sheetW or not sheetH or sheetH <= 0 then
+		return 48, 48, hintFrames or 12
 	end
 
-	url = url or (self.idleCatConfig and self.idleCatConfig.url) or "https://www.withdraw.cc/assets/OrangeTabby-Idle.png"
+	local best
+	for _, frameCount in ipairs({ hintFrames, 16, 14, 12, 10, 8, 6, 4 }) do
+		if type(frameCount) == "number" and frameCount > 0 and sheetW % frameCount == 0 then
+			local fw = sheetW / frameCount
+			if (fw == 32 or fw == 48) and fw > 0 then
+				local score = (sheetH == fw and 4 or 0) + (sheetH == 48 and 2 or 0) + (frameCount == hintFrames and 1 or 0)
+				if not best or score > best.score then
+					best = { frameW = fw, frameH = sheetH, frames = frameCount, score = score }
+				end
+			end
+		end
+	end
+
+	if best then
+		return best.frameW, best.frameH, best.frames
+	end
+
+	local fc = hintFrames or 12
+	return math.max(1, math.floor(sheetW / fc)), sheetH, fc
+end
+
+function library:GetMascotConfig()
+	return self.mascotConfig or {}
+end
+
+function library:GetMascotAnimUrl(animName)
+	local cfg = self:GetMascotConfig()
+	local base = cfg.assetBase or "https://www.withdraw.cc/assets/Tuxedo"
+	return string.format("%s-%s.png", base, animName)
+end
+
+function library:GetMascotAnimDef(animName)
+	local cfg = self:GetMascotConfig()
+	local def = cfg.animations and cfg.animations[animName]
+	if type(def) ~= "table" then
+		def = {}
+	end
+	local size = def.size or def.frameSize
+	local frameW = def.frameWidth
+	local frameH = def.frameHeight
+
+	if size == 32 or size == 48 then
+		frameW = frameW or size
+		frameH = frameH or size
+	end
+
+	return {
+		frames = def.frames,
+		frameWidth = frameW,
+		frameHeight = frameH,
+		fps = def.fps or cfg.fps or 6,
+		loop = def.loop ~= false,
+	}
+end
+
+function library:ApplyMascotVisual(label, clicker, asset, scale)
+	if not label or not asset then
+		return
+	end
+
+	scale = scale or self:GetMascotConfig().scale or 2.25
+	local displayW = math.floor(asset.frameW * scale)
+	local displayH = math.floor(asset.frameH * scale)
+
+	label.Size = UDim2.fromOffset(displayW, displayH)
+	label.Image = asset.imageId
+	label.ImageRectOffset = Vector2.new(0, 0)
+	label.ImageRectSize = Vector2.new(asset.frameW, asset.frameH)
+
+	if clicker then
+		clicker.Size = label.Size
+	end
+end
+
+function library:LoadMascotAsset(animName)
+	animName = animName or self:GetMascotConfig().defaultAnimation or "Sleep"
+	self._mascotCache = self._mascotCache or {}
+
+	if self._mascotCache[animName] then
+		return self._mascotCache[animName]
+	end
+
+	local cfg = self:GetMascotConfig()
+	local url = self:GetMascotAnimUrl(animName)
+	local animDef = self:GetMascotAnimDef(animName)
 
 	local body
 	local ok, result = pcall(function()
@@ -2326,40 +2458,98 @@ function library:LoadIdleCatImageId(url)
 	end
 
 	local sheetW, sheetH = readPngDimensions(body)
-	if sheetW and sheetH then
-		self._idleCatSheetW = sheetW
-		self._idleCatSheetH = sheetH
-	end
+	local detectedW, detectedH, detectedFrames = detectSpriteGrid(sheetW, sheetH, animDef.frames)
+	local frameW = animDef.frameWidth or detectedW
+	local frameH = animDef.frameHeight or detectedH
+	local frames = animDef.frames or detectedFrames
 
 	local folder = self.folder or "withdraw"
 	if typeof(makefolder) == "function" and typeof(isfolder) == "function" and not isfolder(folder) then
 		makefolder(folder)
 	end
 
-	local assetPath = string.format("%s/OrangeTabby-Idle.png", folder)
+	local prefix = cfg.assetPrefix or "Tuxedo"
+	local assetPath = string.format("%s/%s-%s.png", folder, prefix, animName)
 	if typeof(writefile) == "function" then
 		pcall(writefile, assetPath, body)
 	end
 
+	local imageId
 	if typeof(getcustomasset) == "function" and typeof(isfile) == "function" and isfile(assetPath) then
-		local okAsset, assetId = pcall(getcustomasset, assetPath)
-		if okAsset and type(assetId) == "string" and assetId ~= "" then
-			self._idleCatImageId = assetId
-			return assetId
+		local okAsset, asset = pcall(getcustomasset, assetPath)
+		if okAsset and type(asset) == "string" and asset ~= "" then
+			imageId = asset
 		end
 	end
 
-	local encode = (syn and syn.crypt and syn.crypt.base64 and syn.crypt.base64.encode)
-		or (crypt and crypt.base64encode)
-	if encode then
-		local okB64, b64 = pcall(encode, body)
-		if okB64 and type(b64) == "string" then
-			self._idleCatData = b64
-			return b64
+	if not imageId then
+		local encode = (syn and syn.crypt and syn.crypt.base64 and syn.crypt.base64.encode)
+			or (crypt and crypt.base64encode)
+		if encode then
+			local okB64, b64 = pcall(encode, body)
+			if okB64 and type(b64) == "string" then
+				imageId = b64
+			end
 		end
 	end
 
-	return nil
+	if not imageId then
+		return nil
+	end
+
+	local entry = {
+		imageId = imageId,
+		frames = frames,
+		frameW = frameW,
+		frameH = frameH,
+		fps = animDef.fps,
+		loop = animDef.loop,
+		isBase64 = type(imageId) == "string" and not imageId:find("rbxasset") and #imageId > 200,
+	}
+
+	self._mascotCache[animName] = entry
+	return entry
+end
+
+function library:PlayMascotAnimation(animName)
+	local cfg = self:GetMascotConfig()
+	animName = animName or cfg.defaultAnimation or "Sleep"
+	local scale = cfg.scale or 2.25
+
+	self._mascotState = self._mascotState or {
+		current = cfg.defaultAnimation or "Sleep",
+		frame = 0,
+		accum = 0,
+	}
+
+	local function commit(asset)
+		if not asset then
+			return
+		end
+
+		self._mascotState.current = animName
+		self._mascotState.frame = 0
+		self._mascotState.accum = 0
+		self._mascotState.asset = asset
+
+		if self._idleCatLabel then
+			self:ApplyMascotVisual(self._idleCatLabel, nil, asset, scale)
+		end
+
+		if self._idleCatDraw then
+			self._idleCatDraw.Data = asset.imageId
+			self._idleCatDraw.Size = Vector2.new(math.floor(asset.frameW * scale), math.floor(asset.frameH * scale))
+		end
+	end
+
+	if self._mascotCache and self._mascotCache[animName] then
+		commit(self._mascotCache[animName])
+		return
+	end
+
+	task.spawn(function()
+		commit(self:LoadMascotAsset(animName))
+	end)
 end
 
 function library:InitIdleCat(holder, menuWidth)
@@ -2369,97 +2559,137 @@ function library:InitIdleCat(holder, menuWidth)
 
 	self._idleCatLoading = true
 	self._idleCatMenuW = menuWidth
+	self._mascotCache = {}
+	self._mascotState = nil
 
-	local cfg = self.idleCatConfig or {}
-	local frames = cfg.frames or 12
-	local url = cfg.url or "https://www.withdraw.cc/assets/OrangeTabby-Idle.png"
+	local cfg = self:GetMascotConfig()
+	local sleepAnim = cfg.defaultAnimation or "Sleep"
+	local meowAnim = cfg.randomMeowAnimation or "Meow"
+	local meowMin = cfg.randomMeowMin or 28
+	local meowMax = cfg.randomMeowMax or 52
+	local scale = cfg.scale or 2.25
+	local offsetX = cfg.offsetX or 2
+	local offsetY = cfg.offsetY or 2
 
-	self._idleCatFrame = 0
-	self._idleCatAccum = 0
+	local function scheduleNextMeow(state)
+		state.nextMeowAt = tick() + math.random(meowMin, meowMax)
+	end
 
 	task.spawn(function()
-		local imageSource = self:LoadIdleCatImageId(url)
+		local sleepAsset = self:LoadMascotAsset(sleepAnim)
+		self:LoadMascotAsset(meowAnim)
 		self._idleCatLoading = nil
 
-		if not imageSource or not holder or holder.exists ~= true then
+		if not sleepAsset or not holder or holder.exists ~= true then
 			return
 		end
 
-		local frameW = cfg.frameWidth
-		local frameH = cfg.frameHeight
-		if self._idleCatSheetW and self._idleCatSheetH then
-			frameW = frameW or math.floor(self._idleCatSheetW / frames)
-			frameH = frameH or self._idleCatSheetH
-		end
-		frameW = frameW or 48
-		frameH = frameH or 48
+		local displayW = math.floor(sleepAsset.frameW * scale)
+		local displayH = math.floor(sleepAsset.frameH * scale)
 
-		local scale = cfg.scale or 2.25
-		local fps = cfg.fps or 6
-		local displayW = math.floor(frameW * scale)
-		local displayH = math.floor(frameH * scale)
-		local offsetX = cfg.offsetX or 2
-		local offsetY = cfg.offsetY or 2
+		self._mascotState = {
+			current = sleepAnim,
+			frame = 0,
+			accum = 0,
+			asset = sleepAsset,
+			busy = false,
+		}
+		scheduleNextMeow(self._mascotState)
 
 		local function getMenuAnchor()
 			local holderPos = getHolderScreenPos(holder)
-			local anchorX = holderPos.X + offsetX
-			local topY = holderPos.Y - offsetY
-			return anchorX, topY
+			return holderPos.X + offsetX, holderPos.Y - offsetY
 		end
 
-		local function setSpriteFrame(target, index, useDrawing)
-			local ox = index * frameW
+		local function setSpriteFrame(target, asset, index, useDrawing)
+			local ox = index * asset.frameW
 			if useDrawing then
 				pcall(function()
 					target.ImageRectOffset = Vector2.new(ox, 0)
-					target.ImageRectSize = Vector2.new(frameW, frameH)
-				end)
-				pcall(function()
-					target.RectOffset = Vector2.new(ox, 0)
-					target.RectSize = Vector2.new(frameW, frameH)
+					target.ImageRectSize = Vector2.new(asset.frameW, asset.frameH)
 				end)
 			else
 				target.ImageRectOffset = Vector2.new(ox, 0)
-				target.ImageRectSize = Vector2.new(frameW, frameH)
+				target.ImageRectSize = Vector2.new(asset.frameW, asset.frameH)
 			end
 		end
 
-		local useDrawing = type(imageSource) == "string"
-			and not imageSource:find("rbxasset")
-			and #imageSource > 200
+		local function advanceMascot(dt)
+			local state = self._mascotState
+			if not state then
+				return
+			end
 
-		if useDrawing then
+			local asset = self._mascotCache and self._mascotCache[state.current]
+			if not asset then
+				return
+			end
+
+			state.asset = asset
+			local animDef = self:GetMascotAnimDef(state.current)
+			state.accum = state.accum + math.min(dt, 0.05)
+			local interval = 1 / math.max(1, asset.fps or animDef.fps)
+
+			if state.accum >= interval then
+				state.accum = state.accum - interval
+				state.frame = state.frame + 1
+
+				if state.frame >= asset.frames then
+					if animDef.loop then
+						state.frame = 0
+					else
+						local back = sleepAnim
+						if state.current ~= back then
+							self:PlayMascotAnimation(back)
+							state.busy = false
+							scheduleNextMeow(state)
+						else
+							state.frame = 0
+						end
+					end
+				end
+			end
+
+			return state, asset
+		end
+
+		if sleepAsset.isBase64 then
 			local cat = Drawing.new("Image")
 			cat.Visible = false
 			cat.ZIndex = 250
 			cat.Size = Vector2.new(displayW, displayH)
 			cat.Transparency = 0
-			cat.Data = imageSource
-			setSpriteFrame(cat, 0, true)
+			cat.Data = sleepAsset.imageId
+			setSpriteFrame(cat, sleepAsset, 0, true)
 			self._idleCatDraw = cat
 
 			utility.connect(services.RunService.RenderStepped, function(dt)
 				if not self._idleCatDraw or not holder or holder.exists ~= true then
 					return
 				end
-
 				if not self.open then
 					self._idleCatDraw.Visible = false
 					return
 				end
 
-				local anchorX, topY = getMenuAnchor()
-				self._idleCatDraw.Position = Vector2.new(anchorX, topY - displayH)
-				self._idleCatDraw.Visible = true
-
-				self._idleCatAccum = self._idleCatAccum + math.min(dt, 0.05)
-				local interval = 1 / fps
-				if self._idleCatAccum >= interval then
-					self._idleCatAccum = self._idleCatAccum - interval
-					self._idleCatFrame = (self._idleCatFrame + 1) % frames
-					setSpriteFrame(self._idleCatDraw, self._idleCatFrame, true)
+				local state = self._mascotState
+				if state and state.current == sleepAnim and not state.busy and tick() >= (state.nextMeowAt or 0) then
+					state.busy = true
+					self:PlayMascotAnimation(meowAnim)
 				end
+
+				local state, asset = advanceMascot(dt)
+				if not state then
+					return
+				end
+
+				local anchorX, topY = getMenuAnchor()
+				local drawH = math.floor(asset.frameH * scale)
+				local drawW = math.floor(asset.frameW * scale)
+				self._idleCatDraw.Size = Vector2.new(drawW, drawH)
+				self._idleCatDraw.Position = Vector2.new(anchorX, topY - drawH)
+				self._idleCatDraw.Visible = true
+				setSpriteFrame(self._idleCatDraw, asset, state.frame, true)
 			end)
 
 			return
@@ -2475,7 +2705,7 @@ function library:InitIdleCat(holder, menuWidth)
 		guiParent = guiParent or services.CoreGui
 
 		local gui = Instance.new("ScreenGui")
-		gui.Name = "KW_IdleCat"
+		gui.Name = "KW_Mascot"
 		gui.ResetOnSpawn = false
 		gui.IgnoreGuiInset = true
 		gui.DisplayOrder = 20000
@@ -2491,14 +2721,10 @@ function library:InitIdleCat(holder, menuWidth)
 		label.Name = "Cat"
 		label.BackgroundTransparency = 1
 		label.BorderSizePixel = 0
-		label.Image = imageSource
 		label.ScaleType = Enum.ScaleType.Fit
-		label.Size = UDim2.fromOffset(displayW, displayH)
 		label.AnchorPoint = Vector2.new(0, 1)
-		label.Position = UDim2.fromOffset(0, 0)
 		label.Parent = gui
-
-		setSpriteFrame(label, 0, false)
+		self:ApplyMascotVisual(label, nil, sleepAsset, scale)
 
 		self._idleCatGui = gui
 		self._idleCatLabel = label
@@ -2516,14 +2742,17 @@ function library:InitIdleCat(holder, menuWidth)
 			self._idleCatGui.Enabled = true
 
 			local anchorX, topY = getMenuAnchor()
-			self._idleCatLabel.Position = UDim2.fromOffset(anchorX, topY)
+			label.Position = UDim2.fromOffset(anchorX, topY)
 
-			self._idleCatAccum = self._idleCatAccum + math.min(dt, 0.05)
-			local interval = 1 / fps
-			if self._idleCatAccum >= interval then
-				self._idleCatAccum = self._idleCatAccum - interval
-				self._idleCatFrame = (self._idleCatFrame + 1) % frames
-				setSpriteFrame(self._idleCatLabel, self._idleCatFrame, false)
+			local state = self._mascotState
+			if state and state.current == sleepAnim and not state.busy and tick() >= (state.nextMeowAt or 0) then
+				state.busy = true
+				self:PlayMascotAnimation(meowAnim)
+			end
+
+			local state, asset = advanceMascot(dt)
+			if state and asset then
+				setSpriteFrame(label, asset, state.frame, false)
 			end
 		end)
 	end)
@@ -2603,20 +2832,85 @@ function library:SetTheme(theme)
 	end
 end
 
+function library:GetDefaultThemeName()
+	return "Midnight"
+end
+
 function library:GetThemes()
-	local themes = {"Default", "Midnight", "AirHub"}
+	local names = {}
+	local seen = {}
+
+	for name in pairs(themes) do
+		table.insert(names, name)
+		seen[name] = true
+	end
 
 	local folderpath = string.format("%s//themes", self.folder)
-
-	if isfolder(folderpath) then
-		for _, theme in next, listfiles(folderpath) do
-			local name = theme:gsub(folderpath .. "\\", "")
-			name = name:gsub(".cfg", "")
-			table.insert(themes, name)
+	if typeof(isfolder) == "function" and typeof(listfiles) == "function" and isfolder(folderpath) then
+		for _, themePath in next, listfiles(folderpath) do
+			local name = themePath:gsub(folderpath .. "\\", ""):gsub(folderpath .. "/", "")
+			name = name:gsub("%.cfg$", "")
+			if name ~= "" and not seen[name] then
+				table.insert(names, name)
+				seen[name] = true
+			end
 		end
 	end
 
-	return themes
+	table.sort(names, function(a, b)
+		if a == "Midnight" then
+			return true
+		end
+		if b == "Midnight" then
+			return false
+		end
+		return a < b
+	end)
+
+	return names
+end
+
+function library:ApplyMenuThemeFromFlag()
+	local themeName = self.flags and self.flags["KW_MENU_THEME"]
+	if type(themeName) ~= "string" or themeName == "" then
+		return
+	end
+	self:SetTheme(themeName)
+end
+
+function library:InitThemePicker(section, opts)
+	if not section or type(section.Dropdown) ~= "function" then
+		return nil
+	end
+
+	opts = opts or {}
+	local defaultName = opts.default or self.currenttheme or self:GetDefaultThemeName()
+	if not themes[defaultName] then
+		defaultName = self:GetDefaultThemeName()
+	end
+
+	local picker = section:Dropdown({
+		Name = opts.name or "Menu Theme",
+		Flag = opts.flag or "KW_MENU_THEME",
+		Content = self:GetThemes(),
+		Default = defaultName,
+		Scrollable = true,
+		ScrollingMax = opts.scrollingMax or 8,
+		Callback = function(value)
+			if type(value) ~= "string" or value == "" then
+				return
+			end
+			self:SetTheme(value)
+			if opts.notify ~= false then
+				self:Notify("Theme", "Applied: " .. value, 2)
+			end
+		end,
+	})
+
+	self.flags = self.flags or {}
+	self.flags[opts.flag or "KW_MENU_THEME"] = defaultName
+
+	return picker
 end
 
 function library:SaveCustomTheme(name)
@@ -2667,8 +2961,8 @@ function library:Unload()
 
 	self._idleCatFrame = nil
 	self._idleCatAccum = nil
-	self._idleCatImageId = nil
-	self._idleCatData = nil
+	self._mascotCache = nil
+	self._mascotState = nil
 
 	if self._idleCatGui then
 		self._idleCatGui:Destroy()
@@ -2676,6 +2970,7 @@ function library:Unload()
 	end
 
 	self._idleCatLabel = nil
+	self._mascotClicker = nil
 	self._idleCatLoading = nil
 
 	if self._idleCatDraw then
@@ -4098,7 +4393,7 @@ function library:Load(options)
 	local name = "withdraw.cc"
 	local sizeX = options.sizex or 450
 	local sizeY = options.sizey or 500
-	local theme = options.theme and options.theme or "AirHub"
+	local theme = options.theme and options.theme or self:GetDefaultThemeName()
 	local overrides = options.themeoverrides or {}
 	local folder = options.folder
 	local extension = options.extension
