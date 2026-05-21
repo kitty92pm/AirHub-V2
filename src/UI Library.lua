@@ -1384,6 +1384,7 @@ local library = utility.table({
 	safeFlagSet = {},
 	safeControls = {},
 	loadingConfig = false,
+	configFolderName = "configs",
 	idleCatConfig = {
 		url = "https://www.withdraw.cc/assets/OrangeTabby-Idle.png",
 		frames = 12,
@@ -1709,13 +1710,8 @@ function library:SaveConfig(name)
 		end
 
 		local config = services.HttpService:JSONEncode(configtbl)
-		local folderpath = string.format("%s", self.folder)
-
-		if not isfolder(folderpath) then
-			makefolder(folderpath)
-		end
-
-		local filepath = string.format("%s//%s.%s", folderpath, name, self.extension)
+		local filepath = self:GetConfigPath(name)
+		self:EnsureConfigsFolder()
 		writefile(filepath, config)
 		return true, name
 	else
@@ -1727,14 +1723,112 @@ function library:ConfigIgnore(flag)
 	table.insert(configignores, flag)
 end
 
-function library:DeleteConfig(name)
+function library:GetConfigsFolder()
+	assert(self.folder, "No folder specified")
+	return string.format("%s//%s", self.folder, self.configFolderName or "configs")
+end
+
+function library:EnsureConfigsFolder()
+	local root = self.folder
+	local configsPath = self:GetConfigsFolder()
+
+	if typeof(makefolder) == "function" then
+		if typeof(isfolder) == "function" and not isfolder(root) then
+			makefolder(root)
+		end
+		if typeof(isfolder) == "function" and not isfolder(configsPath) then
+			makefolder(configsPath)
+		end
+	end
+
+	return configsPath
+end
+
+function library:GetConfigPath(name)
+	name = self:NormalizeConfigName(name) or name
+	if type(name) ~= "string" or name == "" then
+		return nil
+	end
+
+	assert(self.extension, "No file extension specified")
+	return string.format("%s//%s.%s", self:EnsureConfigsFolder(), name, self.extension)
+end
+
+function library:GetLegacyConfigPath(name)
+	name = self:NormalizeConfigName(name) or name
+	if type(name) ~= "string" or name == "" then
+		return nil
+	end
+
 	assert(self.folder, "No folder specified")
 	assert(self.extension, "No file extension specified")
+	return string.format("%s//%s.%s", self.folder, name, self.extension)
+end
 
-	local filepath = string.format("%s//%s.%s", self.folder, name, self.extension)
+function library:ResolveConfigPath(name)
+	local filepath = self:GetConfigPath(name)
+	if typeof(isfile) == "function" and filepath and isfile(filepath) then
+		return filepath
+	end
 
-	if isfolder(self.folder) and isfile(filepath) then
+	local legacy = self:GetLegacyConfigPath(name)
+	if typeof(isfile) == "function" and legacy and isfile(legacy) then
+		return legacy
+	end
+
+	return filepath
+end
+
+function library:MigrateLegacyConfigs()
+	if self._configsMigrated then
+		return
+	end
+	self._configsMigrated = true
+
+	if typeof(isfolder) ~= "function" or typeof(isfile) ~= "function" or typeof(listfiles) ~= "function" then
+		return
+	end
+	if typeof(readfile) ~= "function" or typeof(writefile) ~= "function" then
+		return
+	end
+	if not isfolder(self.folder) then
+		return
+	end
+
+	self:EnsureConfigsFolder()
+	local ext = "." .. (self.extension or "cfg")
+	local configsPath = self:GetConfigsFolder()
+
+	for _, file in ipairs(listfiles(self.folder)) do
+		if type(file) == "string" and file:sub(-#ext) == ext and not file:find("configs", 1, true) then
+			local base = file:match("([^/\\]+)$") or file
+			local name = base:gsub(ext .. "$", "")
+			if name ~= "" and name:find("%w") then
+				local dest = string.format("%s//%s%s", configsPath, name, ext)
+				if not isfile(dest) and isfile(file) then
+					pcall(function()
+						writefile(dest, readfile(file))
+						if delfile then
+							delfile(file)
+						end
+					end)
+				end
+			end
+		end
+	end
+end
+
+function library:DeleteConfig(name)
+	assert(self.extension, "No file extension specified")
+
+	local filepath = self:GetConfigPath(name)
+	if filepath and isfile(filepath) then
 		delfile(filepath)
+	end
+
+	local legacy = self:GetLegacyConfigPath(name)
+	if legacy and isfile(legacy) then
+		delfile(legacy)
 	end
 end
 
@@ -1797,8 +1891,8 @@ function library:ConfigExists(name)
 		return false
 	end
 
-	local filepath = string.format("%s//%s.%s", self.folder, name, self.extension)
-	return isfolder(self.folder) and isfile(filepath)
+	local filepath = self:ResolveConfigPath(name)
+	return filepath ~= nil and isfile(filepath)
 end
 
 function library:NormalizeConfigName(name)
@@ -1818,16 +1912,15 @@ function library:ReadConfigData(name)
 		return nil, "invalid_name"
 	end
 
-	assert(self.folder, "No folder specified")
 	assert(self.extension, "No file extension specified")
 
-	local filepath = string.format("%s//%s.%s", self.folder, name, self.extension)
+	local filepath = self:ResolveConfigPath(name)
 
-	if typeof(isfolder) ~= "function" or typeof(isfile) ~= "function" or typeof(readfile) ~= "function" then
+	if typeof(isfile) ~= "function" or typeof(readfile) ~= "function" then
 		return nil, "filesystem_unavailable"
 	end
 
-	if not isfolder(self.folder) or not isfile(filepath) then
+	if not filepath or not isfile(filepath) then
 		return nil, "not_found"
 	end
 
@@ -2069,16 +2162,15 @@ function library:LoadConfig(name)
 		return false, "invalid_name"
 	end
 
-	assert(self.folder, "No folder specified")
 	assert(self.extension, "No file extension specified")
 
-	local filepath = string.format("%s//%s.%s", self.folder, name, self.extension)
+	local filepath = self:ResolveConfigPath(name)
 
-	if typeof(isfolder) ~= "function" or typeof(isfile) ~= "function" or typeof(readfile) ~= "function" then
+	if typeof(isfile) ~= "function" or typeof(readfile) ~= "function" then
 		return false, "filesystem_unavailable"
 	end
 
-	if not isfolder(self.folder) or not isfile(filepath) then
+	if not filepath or not isfile(filepath) then
 		return false, "not_found"
 	end
 
@@ -2117,13 +2209,25 @@ function library:GetConfigs()
 	assert(self.folder, "No folder specified")
 	assert(self.extension, "No file extension specified")
 
-	local configs = {}
+	self:MigrateLegacyConfigs()
 
-	for _, config in next, (isfolder(self.folder) and listfiles(self.folder) or {}) do
-		local name = config:gsub(self.folder .. "\\", ""):gsub("." .. self.extension, "")
-		table.insert(configs, name)
+	local configs = {}
+	local configsPath = self:GetConfigsFolder()
+	local ext = "." .. self.extension
+
+	if typeof(isfolder) == "function" and isfolder(configsPath) and typeof(listfiles) == "function" then
+		for _, config in ipairs(listfiles(configsPath)) do
+			if type(config) == "string" and config:sub(-#ext) == ext then
+				local base = config:match("([^/\\]+)$") or config
+				local name = base:gsub(ext .. "$", "")
+				if name ~= "" and name:find("%w") then
+					table.insert(configs, name)
+				end
+			end
+		end
 	end
 
+	table.sort(configs)
 	return configs
 end
 
