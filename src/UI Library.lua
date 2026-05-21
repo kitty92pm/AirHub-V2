@@ -1368,7 +1368,33 @@ local themes = {
 
 local themeobjects = {}
 
-local library = utility.table({theme = table.clone(themes.Midnight), folder = "withdraw", extension = "cfg", flags = {}, open = false, keybind = Enum.KeyCode.RightShift, mousestate = services.InputService.MouseIconEnabled, cursor = nil, holder = nil, connections = {}, cornerRadius = 6, safeMode = true, safeFlagSet = {}, safeControls = {}, loadingConfig = false}, true)
+local library = utility.table({
+	theme = table.clone(themes.Midnight),
+	folder = "withdraw",
+	extension = "cfg",
+	flags = {},
+	open = false,
+	keybind = Enum.KeyCode.RightShift,
+	mousestate = services.InputService.MouseIconEnabled,
+	cursor = nil,
+	holder = nil,
+	connections = {},
+	cornerRadius = 6,
+	safeMode = true,
+	safeFlagSet = {},
+	safeControls = {},
+	loadingConfig = false,
+	idleCatConfig = {
+		url = "https://www.withdraw.cc/assets/OrangeTabby-Idle.png",
+		frames = 12,
+		frameWidth = 48,
+		frameHeight = 48,
+		scale = 2.25,
+		fps = 6,
+		offsetX = 2,
+		offsetY = 2,
+	},
+}, true)
 getgenv().LibraryOpen = false
 local decode = (syn and syn.crypt.base64.decode) or (crypt and crypt.base64decode) or base64_decode
 library.gradient = decode("iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAYAAACNMs+9AAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAABuSURBVChTxY9BDoAgDASLGD2ReOYNPsR/+BAfroI7hibe9OYmky2wbUPIOdsXdc1f9WMwppQm+SDGBnUvomAQBH49qzhFEag25869ElzaIXDhD4JGbyoEVxUedN8FKwnfmwhucgKICc+pNB1mZhdCdhsa2ky0FAAAAABJRU5ErkJggg==")
@@ -2125,6 +2151,278 @@ function library:SyncMouseUI()
 	if self.cursor then
 		self.cursor.Visible = self.open
 	end
+
+	if self._idleCatGui then
+		self._idleCatGui.Enabled = self.open
+	end
+
+	if self._idleCatDraw then
+		self._idleCatDraw.Visible = self.open
+	end
+end
+
+local function getHolderScreenPos(holder)
+	local pos = holder and holder.Position
+	if typeof(pos) == "Vector2" then
+		return pos
+	end
+	if typeof(pos) == "UDim2" then
+		local vp = workspace.CurrentCamera and workspace.CurrentCamera.ViewportSize or Vector2.new(1920, 1080)
+		return Vector2.new(pos.X.Scale * vp.X + pos.X.Offset, pos.Y.Scale * vp.Y + pos.Y.Offset)
+	end
+	return Vector2.new(0, 0)
+end
+
+local function readPngDimensions(body)
+	if type(body) ~= "string" or #body < 24 then
+		return nil, nil
+	end
+
+	local function byteAt(i)
+		return string.byte(body, i)
+	end
+
+	local w = byteAt(17) * 16777216 + byteAt(18) * 65536 + byteAt(19) * 256 + byteAt(20)
+	local h = byteAt(21) * 16777216 + byteAt(22) * 65536 + byteAt(23) * 256 + byteAt(24)
+
+	if w <= 0 or h <= 0 then
+		return nil, nil
+	end
+
+	return w, h
+end
+
+function library:LoadIdleCatImageId(url)
+	if self._idleCatImageId then
+		return self._idleCatImageId
+	end
+
+	url = url or (self.idleCatConfig and self.idleCatConfig.url) or "https://www.withdraw.cc/assets/OrangeTabby-Idle.png"
+
+	local body
+	local ok, result = pcall(function()
+		return game:HttpGet(url, true)
+	end)
+	if ok and type(result) == "string" and #result > 128 then
+		body = result
+	else
+		local req = (syn and syn.request) or (http and http.request) or http_request or request
+		if req then
+			local ok2, resp = pcall(function()
+				return req({ Url = url, Method = "GET" })
+			end)
+			if ok2 and resp then
+				body = resp.Body or resp.body or resp.BodyText
+			end
+		end
+	end
+
+	if type(body) ~= "string" or #body < 128 then
+		return nil
+	end
+
+	local sheetW, sheetH = readPngDimensions(body)
+	if sheetW and sheetH then
+		self._idleCatSheetW = sheetW
+		self._idleCatSheetH = sheetH
+	end
+
+	local folder = self.folder or "withdraw"
+	if typeof(makefolder) == "function" and typeof(isfolder) == "function" and not isfolder(folder) then
+		makefolder(folder)
+	end
+
+	local assetPath = string.format("%s/OrangeTabby-Idle.png", folder)
+	if typeof(writefile) == "function" then
+		pcall(writefile, assetPath, body)
+	end
+
+	if typeof(getcustomasset) == "function" and typeof(isfile) == "function" and isfile(assetPath) then
+		local okAsset, assetId = pcall(getcustomasset, assetPath)
+		if okAsset and type(assetId) == "string" and assetId ~= "" then
+			self._idleCatImageId = assetId
+			return assetId
+		end
+	end
+
+	local encode = (syn and syn.crypt and syn.crypt.base64 and syn.crypt.base64.encode)
+		or (crypt and crypt.base64encode)
+	if encode then
+		local okB64, b64 = pcall(encode, body)
+		if okB64 and type(b64) == "string" then
+			self._idleCatData = b64
+			return b64
+		end
+	end
+
+	return nil
+end
+
+function library:InitIdleCat(holder, menuWidth)
+	if self._idleCatGui or self._idleCatDraw or self._idleCatLoading then
+		return
+	end
+
+	self._idleCatLoading = true
+	self._idleCatMenuW = menuWidth
+
+	local cfg = self.idleCatConfig or {}
+	local frames = cfg.frames or 12
+	local url = cfg.url or "https://www.withdraw.cc/assets/OrangeTabby-Idle.png"
+
+	self._idleCatFrame = 0
+	self._idleCatAccum = 0
+
+	task.spawn(function()
+		local imageSource = self:LoadIdleCatImageId(url)
+		self._idleCatLoading = nil
+
+		if not imageSource or not holder or holder.exists ~= true then
+			return
+		end
+
+		local frameW = cfg.frameWidth
+		local frameH = cfg.frameHeight
+		if self._idleCatSheetW and self._idleCatSheetH then
+			frameW = frameW or math.floor(self._idleCatSheetW / frames)
+			frameH = frameH or self._idleCatSheetH
+		end
+		frameW = frameW or 48
+		frameH = frameH or 48
+
+		local scale = cfg.scale or 2.25
+		local fps = cfg.fps or 6
+		local displayW = math.floor(frameW * scale)
+		local displayH = math.floor(frameH * scale)
+		local offsetX = cfg.offsetX or 2
+		local offsetY = cfg.offsetY or 2
+
+		local function getMenuAnchor()
+			local holderPos = getHolderScreenPos(holder)
+			local anchorX = holderPos.X + offsetX
+			local topY = holderPos.Y - offsetY
+			return anchorX, topY
+		end
+
+		local function setSpriteFrame(target, index, useDrawing)
+			local ox = index * frameW
+			if useDrawing then
+				pcall(function()
+					target.ImageRectOffset = Vector2.new(ox, 0)
+					target.ImageRectSize = Vector2.new(frameW, frameH)
+				end)
+				pcall(function()
+					target.RectOffset = Vector2.new(ox, 0)
+					target.RectSize = Vector2.new(frameW, frameH)
+				end)
+			else
+				target.ImageRectOffset = Vector2.new(ox, 0)
+				target.ImageRectSize = Vector2.new(frameW, frameH)
+			end
+		end
+
+		local useDrawing = type(imageSource) == "string"
+			and not imageSource:find("rbxasset")
+			and #imageSource > 200
+
+		if useDrawing then
+			local cat = Drawing.new("Image")
+			cat.Visible = false
+			cat.ZIndex = 250
+			cat.Size = Vector2.new(displayW, displayH)
+			cat.Transparency = 0
+			cat.Data = imageSource
+			setSpriteFrame(cat, 0, true)
+			self._idleCatDraw = cat
+
+			utility.connect(services.RunService.RenderStepped, function(dt)
+				if not self._idleCatDraw or not holder or holder.exists ~= true then
+					return
+				end
+
+				if not self.open then
+					self._idleCatDraw.Visible = false
+					return
+				end
+
+				local anchorX, topY = getMenuAnchor()
+				self._idleCatDraw.Position = Vector2.new(anchorX, topY - displayH)
+				self._idleCatDraw.Visible = true
+
+				self._idleCatAccum = self._idleCatAccum + math.min(dt, 0.05)
+				local interval = 1 / fps
+				if self._idleCatAccum >= interval then
+					self._idleCatAccum = self._idleCatAccum - interval
+					self._idleCatFrame = (self._idleCatFrame + 1) % frames
+					setSpriteFrame(self._idleCatDraw, self._idleCatFrame, true)
+				end
+			end)
+
+			return
+		end
+
+		local guiParent
+		if typeof(gethui) == "function" then
+			local ok, hui = pcall(gethui)
+			if ok and typeof(hui) == "Instance" then
+				guiParent = hui
+			end
+		end
+		guiParent = guiParent or services.CoreGui
+
+		local gui = Instance.new("ScreenGui")
+		gui.Name = "KW_IdleCat"
+		gui.ResetOnSpawn = false
+		gui.IgnoreGuiInset = true
+		gui.DisplayOrder = 20000
+		gui.Enabled = self.open == true
+		gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+		gui.Parent = guiParent
+
+		if syn and syn.protect_gui then
+			pcall(syn.protect_gui, gui)
+		end
+
+		local label = Instance.new("ImageLabel")
+		label.Name = "Cat"
+		label.BackgroundTransparency = 1
+		label.BorderSizePixel = 0
+		label.Image = imageSource
+		label.ScaleType = Enum.ScaleType.Fit
+		label.Size = UDim2.fromOffset(displayW, displayH)
+		label.AnchorPoint = Vector2.new(0, 1)
+		label.Position = UDim2.fromOffset(0, 0)
+		label.Parent = gui
+
+		setSpriteFrame(label, 0, false)
+
+		self._idleCatGui = gui
+		self._idleCatLabel = label
+
+		utility.connect(services.RunService.RenderStepped, function(dt)
+			if not self._idleCatLabel or not self._idleCatGui then
+				return
+			end
+
+			if not self.open or not holder or holder.exists ~= true then
+				self._idleCatGui.Enabled = false
+				return
+			end
+
+			self._idleCatGui.Enabled = true
+
+			local anchorX, topY = getMenuAnchor()
+			self._idleCatLabel.Position = UDim2.fromOffset(anchorX, topY)
+
+			self._idleCatAccum = self._idleCatAccum + math.min(dt, 0.05)
+			local interval = 1 / fps
+			if self._idleCatAccum >= interval then
+				self._idleCatAccum = self._idleCatAccum - interval
+				self._idleCatFrame = (self._idleCatFrame + 1) % frames
+				setSpriteFrame(self._idleCatLabel, self._idleCatFrame, false)
+			end
+		end)
+	end)
 end
 
 function library:Close()
@@ -2261,6 +2559,26 @@ function library:Unload()
 
 	if self.cursor then
 		self.cursor:Remove()
+	end
+
+	self._idleCatFrame = nil
+	self._idleCatAccum = nil
+	self._idleCatImageId = nil
+	self._idleCatData = nil
+
+	if self._idleCatGui then
+		self._idleCatGui:Destroy()
+		self._idleCatGui = nil
+	end
+
+	self._idleCatLabel = nil
+	self._idleCatLoading = nil
+
+	if self._idleCatDraw then
+		pcall(function()
+			self._idleCatDraw:Remove()
+		end)
+		self._idleCatDraw = nil
 	end
 
 	if self.watermarkobject then
@@ -3778,6 +4096,8 @@ function library:Load(options)
 	})
 	
 	utility.dragify(holder, dragoutline)
+
+	self:InitIdleCat(holder, sizeX)
 
 	local tabholder = utility.create("Square", {
 		Size = UDim2.new(1, -16, 1, -52),
